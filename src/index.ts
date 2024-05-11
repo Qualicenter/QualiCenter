@@ -1,5 +1,18 @@
-const world = 'world';
+import Server from './provider/Server';
+import {PORT,NODE_ENV} from './config';
+import express from 'express';
+// import AgenteController from './controllers/AgenteController';
 
-export function hello(who: string = world): string {
-  return `Hello ${who}! `;
-}
+const server = new Server({
+    port:PORT,
+    env:NODE_ENV,
+    middlewares:[
+        express.json(),
+        express.urlencoded({extended:true})
+    ],
+    controllers:[
+        // AgenteController.instance
+    ]
+});
+
+server.init();
