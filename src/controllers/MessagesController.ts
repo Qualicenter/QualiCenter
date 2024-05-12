@@ -1,7 +1,6 @@
 import { Request,Response } from "express";
 import AbstractController from "./AbstractController";
 import AgentHelpMessages from "../modelsNoSQL/AgentHelpMessages";
-import { PREFIX_NAME } from "../config";
 
 class MessageController extends AbstractController{
     private static _instance: MessageController;
