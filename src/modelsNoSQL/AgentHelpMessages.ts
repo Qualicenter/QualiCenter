@@ -7,7 +7,8 @@ const AgentHelpMessages = dynamodb.define(`${PREFIX_NAME}-AgentHelpMessages`, {
     timestamps: false,
     schema: {
         MessageId: dynamodb.types.uuid(),
-        AgentId: joi.string(),
+        Sender: joi.string(),
+        Receiver: joi.string(),
         Message: joi.string(),
         Date: joi.date(),
     },

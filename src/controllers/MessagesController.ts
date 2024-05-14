@@ -1,7 +1,6 @@
 import { Request,Response } from "express";
 import AbstractController from "./AbstractController";
 import AgentHelpMessages from "../modelsNoSQL/AgentHelpMessages";
-import { PREFIX_NAME } from "../config";
 
 class MessageController extends AbstractController{
     private static _instance: MessageController;
@@ -21,7 +20,31 @@ class MessageController extends AbstractController{
 
     private async getMessages(req:Request,res:Response){
         try{
-            const messages = await AgentHelpMessages.scan().exec().promise();
+            let query = AgentHelpMessages.scan();
+
+            if (req.query.Sender) {
+                query = query.where('Sender').equals(req.query.Sender);
+            }
+
+            if (req.query.Receiver) {
+                query = query.where('Receiver').equals(req.query.Receiver);
+            }
+
+            if (req.query.Date) {
+                try {
+                    const filterDate = new Date(req.query.Date.toString());
+                    const startDate = new Date(filterDate.getFullYear(),filterDate.getMonth(),filterDate.getUTCDate());
+                    const endtDate = new Date(filterDate.getFullYear(),filterDate.getMonth(),filterDate.getUTCDate()+1);
+                    query = query.where('Date').gte(startDate.toISOString());
+                    query = query.where('Date').lt(endtDate.toISOString());
+                } catch (err) {
+                    console.error("Error parsing date:", err);
+                    res.status(400).send("Invalid date format");
+                    return;
+                }
+            }
+
+            const messages = await query.exec().promise();
             console.log(messages);
             res.status(200).send(messages);
         }catch(err){
@@ -45,10 +68,11 @@ class MessageController extends AbstractController{
 
     private async createMessage(req:Request,res:Response){
         console.log(req.body);
-        const {AgentId,Message} = req.body;
+        const {Sender,Receiver,Message} = req.body;
         try{
             const message = await AgentHelpMessages.create({
-                AgentId,
+                Sender,
+                Receiver,
                 Message,
                 Date: new Date()
             });
