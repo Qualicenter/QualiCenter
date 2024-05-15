@@ -2,6 +2,7 @@ import Server from './provider/Server';
 import {PORT,NODE_ENV} from './config';
 import express from 'express';
 import MessageController from './controllers/MessagesController';
+import AgenteController from './controllers/AgenteController';
 
 const server = new Server({
     port:PORT,
@@ -11,7 +12,8 @@ const server = new Server({
         express.urlencoded({extended:true})
     ],
     controllers:[
-        MessageController.instance
+        MessageController.instance,
+        AgenteController.instance
     ]
 });
 
