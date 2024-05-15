@@ -18,9 +18,20 @@ class AgenteController extends AbstractController{
     //Declarar todas las rutas del controlador
     protected initRoutes(): void {
         
+        this.router.get('/consultaTranscripcion1',this.getTranscripcion1.bind(this));
         this.router.get('/consultaTranscripcion2',this.getTranscripcion2.bind(this));
-        this.router.get('/consultaLlamada',this.getLlamadas.bind(this));
+        this.router.get('/consultaLlamadas',this.getLlamadas.bind(this));
+        this.router.get('/consultaLlamada1',this.getLlamada1.bind(this));
         
+    }
+
+    private getLlamada1(req: Request,res: Response){
+        const data = {
+            "Llamada": {
+                "Agente": "Aldehil Sanchez"
+            }
+        };
+        res.json(data);     
     }
 
     private getLlamadas(req: Request,res: Response){
@@ -116,7 +127,7 @@ class AgenteController extends AbstractController{
         
     }
 
-    private async getTranscripcion2(req: Request, res: Response) {
+    private async getTranscripcion1(req: Request, res: Response) {
         try {
             // const contactId = req.params.contactId;
             const input = {
@@ -128,6 +139,28 @@ class AgenteController extends AbstractController{
             const command = await connect.listRealtimeContactAnalysisSegments(input).promise();
             res.status(200).json([command]);
             console.log(command);
+        } catch (err) {
+            console.log(err);
+            res.status(500).send('Internal server error' + err);
+        }
+    }
+
+    private async getTranscripcion2(req: Request, res: Response) {
+        try {
+            const contactId = req.params.contactId;
+
+            if (!contactId) {
+                // Si contactId no se proporciona, devolver un error al cliente
+                return res.status(400).send('Missing required parameter: contactId');
+            }
+            const input = {
+                InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2', // required
+                ContactId: contactId // required
+            };
+            
+            // Obtener las métricas actuales
+            const command = await connect.listRealtimeContactAnalysisSegments(input).promise();
+            res.status(200).json([command]);
         } catch (err) {
             console.log(err);
             res.status(500).send('Internal server error' + err);
