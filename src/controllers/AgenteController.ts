@@ -22,7 +22,15 @@ class AgenteController extends AbstractController{
         this.router.get('/consultaTranscripcion2/:contactId',this.getTranscripcion2.bind(this));
         this.router.get('/consultaLlamadas',this.getLlamadas.bind(this));
         this.router.get('/consultaLlamada1',this.getLlamada1.bind(this));
+        this.router.get('/prueba',this.getPrueba.bind(this));
         
+    }
+
+    private getPrueba(req: Request,res: Response){
+        const respuesta = {
+            "mensaje": "Prueba exitosa"
+        }
+        res.status(200).json(respuesta);
     }
 
     private getLlamada1(req: Request,res: Response){
