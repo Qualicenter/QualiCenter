@@ -173,7 +173,7 @@ class AgenteController extends AbstractController{
         try{
             const service = req.body.service
             const name = req.body.clientName
-            const direccion = req.body.service
+            const direccion = req.body.direccion
             const params = {
                 Message: name + ", tu " + service + " va en camino a: " + direccion,
                 PhoneNumber: req.body.number,
