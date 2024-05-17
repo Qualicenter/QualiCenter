@@ -1,7 +1,7 @@
 import { Request,Response } from "express";
 import AbstractController from "./AbstractController";
 import connect from "../services/connectService";
-
+import AWS from "../services/amazonSNS";
 
 
 class AgenteController extends AbstractController{
@@ -22,6 +22,8 @@ class AgenteController extends AbstractController{
         this.router.get('/consultaTranscripcion2/:contactId',this.getTranscripcion2.bind(this));
         this.router.get('/consultaLlamadas',this.getLlamadas.bind(this));
         this.router.get('/consultaLlamada1',this.getLlamada1.bind(this));
+
+        this.router.post('/enviarSMS',this.postEnviarSMS.bind(this));
         
     }
 
@@ -165,6 +167,31 @@ class AgenteController extends AbstractController{
             console.log(err);
             res.status(500).send('Internal server error' + err);
         }
+    }
+
+    private async postEnviarSMS(req:Request, res:Response){
+        try{
+            const service = req.body.service
+            const name = req.body.clientName
+            const direccion = req.body.service
+            const params = {
+                Message: name + ", tu " + service + " va en camino a: " + direccion,
+                PhoneNumber: req.body.number,
+                MessageAttributes: {
+                        'AWS.SNS.SMS.SenderID': {
+                            'DataType': 'String',
+                            'StringValue': 'String'
+                    }
+                }
+            };
+            const mensaje = await new AWS.SNS().publish(params).promise();
+            console.log(mensaje);
+            res.status(200).send("<h1>Mensaje mandado</h1>");
+        } catch(err){
+            console.log(err);
+            res.status(500).send('Internal server error '+ err);
+        }
+
     }
 
 
