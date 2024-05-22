@@ -16,6 +16,14 @@ class MessageController extends AbstractController{
         this.router.get("/getMessages",this.getMessages.bind(this));
         this.router.post("/createMessage",this.createMessage.bind(this));
         this.router.get("/getLastMessages", this.getLastMessages.bind(this));
+        this.router.get('/prueba',this.getPrueba.bind(this));
+    }
+
+    private getPrueba(req: Request,res: Response){
+        const respuesta = {
+            "mensaje": "Prueba exitosa"
+        }
+        res.status(200).json(respuesta);
     }
 
     private async getMessages(req:Request,res:Response){
