@@ -1,6 +1,7 @@
 import { Request,Response } from "express";
 import AbstractController from "./AbstractController";
-import connect from "../services/connectService";
+import connectLens from "../services/connectLensService";
+import AWS from "../services/amazonSNS";
 
 
 class AgenteController extends AbstractController{
@@ -137,7 +138,7 @@ class AgenteController extends AbstractController{
             };
             
             // Obtener las métricas actuales
-            const command = await connect.listRealtimeContactAnalysisSegments(input).promise();
+            const command = await connectLens.listRealtimeContactAnalysisSegments(input).promise();
             res.status(200).json([command]);
             console.log(command);
         } catch (err) {
@@ -160,7 +161,7 @@ class AgenteController extends AbstractController{
             };
             
             // Obtener las métricas actuales
-            const command = await connect.listRealtimeContactAnalysisSegments(input).promise();
+            const command = await connectLens.listRealtimeContactAnalysisSegments(input).promise();
             res.status(200).json([command]);
         } catch (err) {
             console.log(err);
