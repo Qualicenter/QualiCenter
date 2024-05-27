@@ -21,11 +21,10 @@ class SmsController extends AbstractController{
         try{
             console.log(req.body);
             const service = req.body.service
-            const name = req.body.clientName
             const direccion = req.body.direccion
             const numero = req.body.number
             const params = {
-                Message: name + ", tu " + service + " va en camino a: " + direccion,
+                Message: "Tu " + service + " va en camino a: " + direccion,
                 PhoneNumber: numero,
                 MessageAttributes: {
                     'AWS.SNS.SMS.SenderID': {
