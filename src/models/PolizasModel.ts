@@ -1,20 +1,19 @@
 import { Model, Sequelize } from 'sequelize';
 
 interface PolizasAttributes {
-    numPoliza: number;
+    numPoliza: string;
     Telefono: string;
-    placa: string;
 }
 
 module.exports = (sequelize: Sequelize, DataTypes: any) => {
     class Poliza extends Model<PolizasAttributes> implements PolizasAttributes {
-        public numPoliza!: number;
+        public numPoliza!: string;
         public Telefono!: string;
-        public placa!: string;
 
         static associate(models: any) {
-            this.belongsTo(models.Cliente, { foreignKey: 'Telefono', as: 'cliente' })
-            this.belongsTo(models.Vehicle, { foreignKey: 'numPoliza', as: 'vehicle' });
+            this.belongsTo(models.Cliente, { foreignKey: 'Telefono', as: 'cliente' });
+            this.hasOne(models.Vehicle, { foreignKey: 'numPoliza', as: 'vehicle' });
+            this.hasMany(models.Siniestro, { foreignKey: 'numPoliza', as: 'siniestro' });
         }
     }
 
@@ -22,19 +21,21 @@ module.exports = (sequelize: Sequelize, DataTypes: any) => {
         numPoliza: {
             type: DataTypes.STRING,
             allowNull: false,
-            primaryKey: true
-        }, 
+            primaryKey: true,
+        },
         Telefono: {
             type: DataTypes.STRING,
             allowNull: false
         },
-        placa: {
-            type: DataTypes.STRING,
-            allowNull: false
-        }
     }, {
         sequelize,
         modelName: 'Poliza',
+        indexes: [
+            {
+                unique: true,
+                fields: ['numPoliza']
+            }
+        ]
     });
 
     return Poliza;
