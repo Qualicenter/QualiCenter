@@ -18,7 +18,7 @@ module.exports = (sequelize: Sequelize, DataTypes: any) => {
         public numPoliza!: number;
 
         static associate(models: any) {
-            this.hasOne(models.Poliza, { foreignKey: 'numPoliza', as: 'poliza' });
+            this.belongsTo(models.Poliza, { foreignKey: 'numPoliza', as: 'poliza' });
         }
     }
 
