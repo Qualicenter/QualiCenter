@@ -8,6 +8,6 @@ AWS.config.update({
 });
 
 // Instanciar Amazon Connect
-const connect = new AWS.ConnectContactLens();
+const connectLens = new AWS.ConnectContactLens();
 
-export default connect;
+export default connectLens;

@@ -20,9 +20,12 @@ class SmsController extends AbstractController{
     private async postEnviarMensaje(req: Request, res: Response){
         try{
             console.log(req.body);
+            const service = req.body.service
+            const direccion = req.body.direccion
+            const numero = req.body.number
             const params = {
-                Message: "Ajustador en camino a: " + req.body.message,
-                PhoneNumber: req.body.number,
+                Message: "Tu " + service + " va en camino a: " + direccion,
+                PhoneNumber: numero,
                 MessageAttributes: {
                     'AWS.SNS.SMS.SenderID': {
                         'DataType': 'String',
