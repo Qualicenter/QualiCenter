@@ -3,6 +3,8 @@ import {PORT,NODE_ENV} from './config';
 import express from 'express';
 import MessageController from './controllers/MessagesController';
 import AgenteController from './controllers/AgenteController';
+import SmsController from './controllers/SmsController';
+import CallsDataController from './controllers/CallsDataController';
 
 const server = new Server({
     port:PORT,
@@ -13,7 +15,9 @@ const server = new Server({
     ],
     controllers:[
         MessageController.instance,
-        AgenteController.instance
+        AgenteController.instance,
+        SmsController.instance,
+        CallsDataController.instance
     ]
 });
 
