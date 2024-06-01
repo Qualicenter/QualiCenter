@@ -3,6 +3,7 @@ import AbstractController from "./AbstractController";
 import connectLens from "../services/connectLensService";
 import AWS from "../services/amazonSNS";
 import { connectService, customerProfilesService } from "../services/clientsService";
+import connect from "../services/connectService";
 
 class AgenteController extends AbstractController{
     //Singleton
@@ -17,7 +18,6 @@ class AgenteController extends AbstractController{
     }
     //Declarar todas las rutas del controlador
     protected initRoutes(): void {
-        
         this.router.get('/consultaTranscripcion1',this.getTranscripcion1.bind(this));
         this.router.get('/consultaTranscripcion2/:contactId',this.getTranscripcion2.bind(this));
         this.router.get('/consultaTranscripcionPrueba',this.getTranscripcionPrueba.bind(this));
@@ -25,6 +25,7 @@ class AgenteController extends AbstractController{
         this.router.get('/consultaLlamada1',this.getLlamada1.bind(this));
         this.router.get('/prueba',this.getPrueba.bind(this));
         this.router.get('/consultaCustomerInfo/:contactId', this.getCustomerInfo.bind(this));
+        this.router.get('/infoAgente/:agenteNombre', this.getInfoAgente.bind(this));
     }
 
     private getTranscripcionPrueba(req: Request,res: Response){
@@ -347,6 +348,142 @@ class AgenteController extends AbstractController{
         } catch (error) {
             console.error("Error fetching contact information:", error);
             res.status(500).send('Internal server error');
+        }
+    }
+
+    private async getInfoAgente(req: Request, res: Response) {
+        try {
+            const agentName = req.params.agenteNombre;
+
+            if (!agentName) {
+                return res.status(400).send('Nombre de agente no proporcionado');
+            }
+
+            // const st = new Date(new Date().getTime() - (1000 * 60 * 60 * 24 * 7)); // Hace un día
+            const st = new Date(new Date().setHours(0, 0, 0, 0)); // Hoy 00:00:00
+            const et = new Date(new Date().getTime() - (1000)); // Hace un segundo
+            // console.log(st, et);
+            const input4 = {
+                InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2',
+                TimeRange: { // SearchContactsTimeRange
+                    Type: "INITIATION_TIMESTAMP", // required
+                    StartTime: st, // required
+                    EndTime: et, // required
+                },
+            };
+            const data4 = await connect.searchContacts(input4).promise();
+
+            const input = {
+                InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2',
+                //getCurrentUserData
+                Filters: {
+                    Queues: ['f6512e90-b9c0-413b-beb9-702a5473435a'],
+                },
+            }
+            const data = await connect.getCurrentUserData(input).promise();
+
+            const userIds = data?.UserDataList?.map(user => user?.User?.Id) ?? []; // recuperar los IDs de todos los usuarios
+
+            // const agenteId = contactIds.find(item => userIds.includes(item.userId)); // verificar si el agente está en la lista
+
+            const list = [];
+            for (const userId of userIds) {
+                const input2 = {
+                    InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2',
+                    UserId: userId ?? '', // Proporcionar el ID de usuario, en caso de que no se proporcione, se utilizará una cadena vacía
+                }
+                const data2 = await connect.describeUser(input2).promise();
+                
+                list.push({
+                    userId: userId,
+                    name: data2.User?.IdentityInfo?.FirstName + ' ' + data2.User?.IdentityInfo?.LastName,
+                    username: data2.User?.Username,
+                    //data: data2,
+                });
+            }
+
+            // comparar el agentName con el firstName y lastName del agente ****[cambiar username por name]****
+            const infoAgente = list.find(item => item.username?.toLowerCase().replace(/\s/g, '') === agentName.toLowerCase().replace(/\s/g, ''));
+
+
+            // Si encontramos el agente, recuperamos sus métricas con su id
+
+            // ID del agente que estamos interesados
+            const agenteId = infoAgente?.userId ?? '';
+
+            // Filtrar los contactos por el Id del AgentInfo
+            const filteredContacts = data4.Contacts.filter(contact => contact.AgentInfo?.Id === agenteId);
+
+            // Mapear los contactos para extraer los campos requeridos
+            const contacts = filteredContacts.map(contact => ({
+                ContactId: contact.Id,
+                ConnectedToAgentTimestamp: contact.AgentInfo?.ConnectedToAgentTimestamp,
+                InitiationTimestamp: contact.InitiationTimestamp,
+                DisconnectTimestamp: contact.DisconnectTimestamp
+            }));
+            //console.log(contacts);
+
+            const metricaAgente = [];
+            if (infoAgente) {
+                const input3 = {
+                    ResourceArn: 'arn:aws:connect:us-east-1:744102162455:instance/e730139b-8673-445e-8307-c3a9250199a2',
+                    StartTime: st,
+                    EndTime: et,
+                    Filters: [
+                        {
+                            FilterKey: 'AGENT', // Recuperar datos de un agente específico
+                            FilterValues: [infoAgente.userId ?? ''],
+                        },
+                    ],
+                    Metrics: [
+                        {
+                            Name: 'AVG_HANDLE_TIME',
+                        }, // Tiempo promedio de manejo de llamadas AHT
+                        {
+                            Name: 'CONTACTS_HANDLED',
+                        }, // Llamadas respondidas
+                        {
+                            Name: 'AGENT_NON_RESPONSE',
+                        }, // Llamadas no respondidas
+                        {
+                            Name: 'CONTACTS_ABANDONED',
+                        }, // Llamadas abandonadas
+                        {
+                            Name: 'AGENT_ANSWER_RATE',
+                        }, // Tasa de respuesta del agente
+                        {
+                            Name: 'AGENT_OCCUPANCY',
+                        }, // Ocupación del agente
+                        {
+                            Name: 'SERVICE_LEVEL',
+                            Threshold: [ // ThresholdCollections
+                                { // ThresholdV2
+                                    Comparison: "LT",
+                                    ThresholdValue: 20,
+                                },
+                            ],
+                        }, // Nivel de servicio
+                    ],
+                };
+                
+                const data3 = await connect.getMetricDataV2(input3).promise();
+
+                metricaAgente.push({
+                    agenteID: infoAgente.userId,
+                    //contactID: agenteId?.contactId,
+                    nombre: infoAgente.name,
+                    username: infoAgente.username,
+                    llamadas: contacts,
+                    data: data3
+                });
+                //res.status(200).json([infoAgente, data3]);
+            }
+            res.status(200).json(metricaAgente);
+            //res.status(200).json([list, xAgente]);
+            //res.status(200).json(data);
+        } catch (err) {
+            console.log(err);
+            res.status(500).send('Internal server error' + err);
         }
     }
     
