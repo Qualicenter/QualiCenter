@@ -2,7 +2,7 @@ import { Request,Response } from "express";
 import AbstractController from "./AbstractController";
 import connectLens from "../services/connectLensService";
 import AWS from "../services/amazonSNS";
-
+import { connectService, customerProfilesService } from "../services/clientsService";
 
 class AgenteController extends AbstractController{
     //Singleton
@@ -24,7 +24,7 @@ class AgenteController extends AbstractController{
         this.router.get('/consultaLlamadas',this.getLlamadas.bind(this));
         this.router.get('/consultaLlamada1',this.getLlamada1.bind(this));
         this.router.get('/prueba',this.getPrueba.bind(this));
-        
+        this.router.get('/consultaCustomerInfo/:contactId', this.getCustomerInfo.bind(this));
     }
 
     private getTranscripcionPrueba(req: Request,res: Response){
@@ -159,7 +159,7 @@ class AgenteController extends AbstractController{
         ];
         res.json(data);
     
-}
+    }
 
     private getPrueba(req: Request,res: Response){
         const respuesta = {
@@ -309,6 +309,47 @@ class AgenteController extends AbstractController{
             res.status(500).send('Internal server error' + err);
         }
     }
+
+    private async getCustomerInfo(req: Request, res: Response) {
+        try {
+            const contactId = req.params.contactId;
+
+            if (!contactId) {
+                return res.status(400).send('Missing required parameter: contactId');
+            }
+
+            // 1. Get customer phone number from the contact ID
+            const getContactAttributesResponse = await connectService.getContactAttributes({
+                InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2',
+                InitialContactId: contactId
+            }).promise();
+
+            if (!getContactAttributesResponse.Attributes) {
+                return res.status(404).send('Contact attributes not found');
+            }
+
+            const phoneNumber = getContactAttributesResponse.Attributes['Customer number'];
+            
+            // 2. Use the phone number to get customer information
+            const response = await customerProfilesService.searchProfiles({
+                DomainName: 'amazon-connect-qualicentec',
+                KeyName: 'PhoneNumber',
+                Values: [phoneNumber],
+                MaxResults: 1
+            }).promise();
+            
+            const customerInfo = response.Items![0];
+            const name = `${customerInfo.FirstName} ${customerInfo.LastName}`;
+
+            const responseObject = { clientName: name };
+            res.status(200).json(responseObject);
+            
+        } catch (error) {
+            console.error("Error fetching contact information:", error);
+            res.status(500).send('Internal server error');
+        }
+    }
+    
 
 }
 

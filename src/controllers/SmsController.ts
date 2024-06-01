@@ -1,10 +1,14 @@
+/*
+Autor: Abigail Donají Chávez Rubio
+SMS controller that publishes the messasges from the agent aplication to the client
+*/
+
 import {Request, Response} from "express";
 import AbstractController from "./AbstractController";
 import AWS from "../services/amazonSNS";
 
 class SmsController extends AbstractController{
     private static _instance: SmsController;
-
     public static get instance(): AbstractController{
         if(!this._instance){
             this._instance = new SmsController("sms");
@@ -12,11 +16,13 @@ class SmsController extends AbstractController{
         return this._instance;
     }
 
+    /*This method initializes the routes for the controller*/
     protected initRoutes(): void {
         this.router.get('/pruebamensaje',this.getTestMensaje.bind(this));
         this.router.post('/enviarMensaje', this.postEnviarMensaje.bind(this));
     }
 
+    /*Function to send a message to the client with the service, address and phoneNumber*/
     private async postEnviarMensaje(req: Request, res: Response){
         try{
             console.log(req.body);
@@ -43,6 +49,7 @@ class SmsController extends AbstractController{
         }
     }
 
+    /*Function to test the message*/
     private async getTestMensaje(req: Request, res: Response){
         try{
             console.log("Prueba exitosa");
