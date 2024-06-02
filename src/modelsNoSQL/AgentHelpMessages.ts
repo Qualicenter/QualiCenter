@@ -11,6 +11,11 @@ const AgentHelpMessages = dynamodb.define(`${PREFIX_NAME}-AgentHelpMessages`, {
         Receiver: joi.string(),
         Message: joi.string(),
         Date: joi.date(),
+        nombreCliente: joi.string(),
+        generoCliente: joi.string(),
+        fechaNacimientoCliente: joi.date(),
+        polizaCliente: joi.string(),
+        tipoCliente: joi.string(),
     },
     tableName: `${PREFIX_NAME}-AgentHelpMessages`
 });
