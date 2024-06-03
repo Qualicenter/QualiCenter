@@ -146,15 +146,14 @@ class AgenteController extends AbstractController{
                 .filter((contact) => !contact.DisconnectTimestamp)
                 .map(async (contact) => {
                     const numberData = await this.getNumberActiva(contact.Id? contact.Id : '');
-                    const transcripcion = await this.getTranscripcionActiva(contact.Id? contact.Id : '');
+                    // const transcripcion = await this.getTranscripcionActiva(contact.Id? contact.Id : '');
                     
                     let customerNumber;
                     let currentTime;
                     let elapsedTime;
                     let elapsedTimeInMilliseconds;
                     let sentimiento = 'NEUTRAL'
-                    if (numberData && numberData[0] && numberData[0].Attributes
-                        && transcripcion && transcripcion.Segments && transcripcion.Segments.length > 0) {
+                    if (numberData && numberData[0] && numberData[0].Attributes) {
                         customerNumber = numberData[0].Attributes["Customer number"];
                         currentTime = numberData[0].Attributes["CurrentTime"];
 
