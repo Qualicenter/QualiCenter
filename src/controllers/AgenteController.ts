@@ -171,12 +171,14 @@ class AgenteController extends AbstractController{
                     if (customerNumber && numberData) {
                         const agentInfo = await this.getUserActiva(contact.AgentInfo?.Id ? contact.AgentInfo.Id : '');
                         const clientInfo = await this.getCustomerProfileActiva(customerNumber);
-                        let nombreCliente;
-                        let nombreAgente;
+                        let nombreCliente = '';
+                        let nombreAgente = '';
+                        let usernameAgente = '';
                         if(clientInfo && clientInfo[0] && clientInfo[0].Items && clientInfo[0].Items[0]
                             && agentInfo && agentInfo[0] && agentInfo[0].User) {
                             nombreCliente = clientInfo[0].Items[0].FirstName + ' ' +  clientInfo[0].Items[0].LastName;
-                            nombreAgente = agentInfo[0].User.Username;
+                            nombreAgente = agentInfo[0].User.IdentityInfo?.FirstName + ' ' + agentInfo[0].User.IdentityInfo?.LastName;
+                            usernameAgente = agentInfo[0].User.Username!;
                         }
                         return {
                            
@@ -185,7 +187,8 @@ class AgenteController extends AbstractController{
                             InitiationTimestamp: contact.InitiationTimestamp,
                             CurrentTime: currentTime,
                             ElapsedTime: elapsedTime,
-                            Sentimiento: sentimiento
+                            Sentimiento: sentimiento,
+                            UserNameAgente: usernameAgente,
                             //Transcripcion: transcripcion
                             
                         };
