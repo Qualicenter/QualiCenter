@@ -5,6 +5,7 @@ import MessageController from './controllers/MessagesController';
 import AgenteController from './controllers/AgenteController';
 import SmsController from './controllers/SmsController';
 import CallsDataController from './controllers/CallsDataController';
+import QueueController from './controllers/QueueController';
 
 const server = new Server({
     port:PORT,
@@ -17,7 +18,8 @@ const server = new Server({
         MessageController.instance,
         AgenteController.instance,
         SmsController.instance,
-        CallsDataController.instance
+        CallsDataController.instance,
+        QueueController.instance
     ]
 });
 
