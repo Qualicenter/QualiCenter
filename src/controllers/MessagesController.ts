@@ -41,10 +41,13 @@ class MessageController extends AbstractController{
             if (req.query.Date) {
                 try {
                     const filterDate = new Date(req.query.Date.toString());
-                    const startDate = new Date(filterDate.getFullYear(),filterDate.getMonth(),filterDate.getUTCDate());
-                    const endtDate = new Date(filterDate.getFullYear(),filterDate.getMonth(),filterDate.getUTCDate()+1);
-                    query = query.where('Date').gte(startDate.toISOString());
-                    query = query.where('Date').lt(endtDate.toISOString());
+                    console.log("FilterDate:",filterDate);
+                    const startDate = new Date(filterDate.getFullYear(),filterDate.getMonth(),filterDate.getDate());
+                    console.log("StartDate:",startDate);
+                    const endtDate = new Date(filterDate.getFullYear(),filterDate.getMonth(),filterDate.getDate()+1);
+                    console.log("EndDate:",endtDate);
+                    query = query.where('Date').gte(startDate);
+                    query = query.where('Date').lt(endtDate);
                 } catch (err) {
                     console.error("Error parsing date:", err);
                     res.status(400).send("Invalid date format");
