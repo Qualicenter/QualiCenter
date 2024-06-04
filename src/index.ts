@@ -8,6 +8,7 @@ import CallsDataController from './controllers/CallsDataController';
 import EncuestaController from './controllers/EncuestaControllers';
 import HistoricoController from './controllers/HistoricoControllers';
 import KPIsController from './controllers/KPIController';
+import ClientsController from './controllers/ClientsController';
 
 const server = new Server({
     port:PORT,
@@ -23,7 +24,8 @@ const server = new Server({
         CallsDataController.instance,
         EncuestaController.instance,
         HistoricoController.instance,
-        KPIsController.instance
+        KPIsController.instance,
+        ClientsController.instance
     ]
 });
 
