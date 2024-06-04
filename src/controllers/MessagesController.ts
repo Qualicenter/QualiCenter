@@ -76,14 +76,20 @@ class MessageController extends AbstractController{
 
     private async createMessage(req:Request,res:Response){
         console.log(req.body);
-        const {Sender,Receiver,Message} = req.body;
+        const {Sender,Receiver,Message, nombreCliente, generoCliente, fechaNacimientoCliente, polizaCliente, tipoCliente} = req.body;
         try{
             const message = await AgentHelpMessages.create({
                 Sender,
                 Receiver,
                 Message,
-                Date: new Date()
+                Date: new Date(),
+                nombreCliente,
+                generoCliente,
+                fechaNacimientoCliente,
+                polizaCliente,
+                tipoCliente,
             });
+            console.log('Mensaje ayuda creado:', message);
             res.status(200).send("Mensaje creado correctamente");
         }catch(err){
             console.log(err);
