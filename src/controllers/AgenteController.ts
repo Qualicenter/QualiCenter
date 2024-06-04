@@ -19,21 +19,74 @@ class AgenteController extends AbstractController{
     }
     //Declarar todas las rutas del controlador
     protected initRoutes(): void {
-        this.router.get('/consultaTranscripcion1',this.getTranscripcion1.bind(this));
+        
         // Transcripción de prueba elegante (usada en los videos)
         this.router.get('/consultaTranscripcionPrueba',this.getTranscripcionPrueba.bind(this));
         this.router.get('/consultaTranscripcion2/:contactId',this.getTranscripcion2.bind(this));
-        this.router.get('/consultaTranscripcionPrueba',this.getTranscripcionPrueba.bind(this));
+        this.router.get('/consultaTranscripcionActiva',this.getTranscripcionSupervisorActiva.bind(this));
         this.router.get('/prueba',this.getPrueba.bind(this));
         this.router.get('/consultaCustomerInfo/:contactId', this.getCustomerInfo.bind(this));
         this.router.get('/infoAgente/:agenteNombre', this.getInfoAgente.bind(this));
-
         // Llamadas activas 
         this.router.get('/consultaContacts',this.getContacts.bind(this));
         this.router.get('/verificarContacts',this.verificarConctacts.bind(this));
-       
 
+    }
 
+    private async getTranscripcionSupervisorActiva(req: Request,res: Response){
+        try {
+            const st = new Date(new Date().getTime() - (1000 * 60 * 60 * 24)); // Hace un día
+            const et = new Date(new Date().getTime() - (1000)); // Hace un segundo
+            const input = {
+                InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2', // required
+                TimeRange: {
+                    Type: "INITIATION_TIMESTAMP", 
+                    StartTime: st, // Comienzo del día 
+                    EndTime: et, // Final del día 
+                }
+            };
+            const command = await connect.searchContacts(input).promise();
+            const result = ([command]);
+            await Promise.all(result[0].Contacts
+                .filter((contact) => !contact.DisconnectTimestamp)
+                .map(async (contact) => {
+                    const transcripcion = await this.getTranscripcion1(res ,contact.Id? contact.Id : '');
+                    return transcripcion
+                }));
+            
+        } catch (err) {
+            console.log(err);
+            const llamadaError = [
+                {
+                    "Segments": [
+                        {
+                            "Transcript": {
+                                "Id": "151fdea7-60ac-4136-8d76-3dc29b3c2ecd",
+                                "ParticipantId": "CUSTOMER",
+                                "ParticipantRole": "CUSTOMER",
+                                "Content": "...",
+                                "BeginOffsetMillis": 757,
+                                "EndOffsetMillis": 1275,
+                                "Sentiment": "NEUTRAL"
+                            }
+                        },
+                        {
+                            "Transcript": {
+                                "Id": "151fdea7-60ac-4136-8d76-3dc29b3c2ecd",
+                                "ParticipantId": "AGENT",
+                                "ParticipantRole": "AGENT",
+                                "Content": "...",
+                                "BeginOffsetMillis": 757,
+                                "EndOffsetMillis": 1275,
+                                "Sentiment": "NEUTRAL"
+                            }
+                        },
+                    ]
+                
+                }
+                ];
+            res.json(llamadaError)
+        }
     }
 
     private async getNumberActiva(initialContactId: string) {
@@ -49,47 +102,64 @@ class AgenteController extends AbstractController{
             
         } catch (err) {
             console.log(err);
-            throw new Error('Internal server error' + err);
+            const data = [
+                {
+                    "Attributes": {
+                        "Customer number": "+000000000000",
+                        "CurrentTime": "2024-05-29T02:12:41.663142"
+                    }
+                }
+            ];
+            return data;
         }
     }
 
-    private async getTranscripcionActiva(contactId: string) {
-        const MAX_RETRIES = 5; // Define the maximum number of retries
-        let attempt = 0; // Initialize attempt counter
-    
-        const request = async (): Promise<any> => {
-            try {
-                const input = {
-                    InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2', // required
-                    ContactId: contactId // required
-                };
+    private async getTranscripcion1(res: Response, contactId: string) {
+        try {
+            // const contactId = req.params.contactId;
+            const input = {
+                InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2', // required
+                ContactId: contactId // required
+            };
+
+            // Obtener las métricas actuales
+            const command = await connectLens.listRealtimeContactAnalysisSegments(input).promise();
+            console.log([command, command.Segments[command.Segments.length - 1].Transcript?.Sentiment]);
+            res.json([command]);
+            
+        } catch (err) {
+            console.log(err);
+            const data = [
+                {
+                    "Segments": [
+                        {
+                            "Transcript": {
+                                "Id": "151fdea7-60ac-4136-8d76-3dc29b3c2ecd",
+                                "ParticipantId": "CUSTOMER",
+                                "ParticipantRole": "CUSTOMER",
+                                "Content": "...",
+                                "BeginOffsetMillis": 757,
+                                "EndOffsetMillis": 1275,
+                                "Sentiment": "NEUTRAL"
+                            }
+                        },
+                        {
+                            "Transcript": {
+                                "Id": "151fdea7-60ac-4136-8d76-3dc29b3c2ecd",
+                                "ParticipantId": "AGENT",
+                                "ParticipantRole": "AGENT",
+                                "Content": "...",
+                                "BeginOffsetMillis": 757,
+                                "EndOffsetMillis": 1275,
+                                "Sentiment": "NEUTRAL"
+                            }
+                        },
+                    ]
                 
-                // Obtener las métricas actuales
-                const command = await connectLens.listRealtimeContactAnalysisSegments(input).promise();
-                return command;
-            } catch (err) {
-                if (err instanceof Error) {
-                    if (err.name === 'TooManyRequestsException' && attempt < MAX_RETRIES) {
-                        attempt++;
-                        // Wait 1 second before retrying
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                        return request();
-                    } else if (err.name === 'ResourceNotFoundException') {
-                        console.log('Real-time contact analysis not found for contactId: ' + contactId);
-                        return null; // or handle this case differently as per your requirements
-                    } else {
-                        console.log(err);
-                        throw new Error('Internal server error' + err);
-                    }
-                } else {
-                    // Handle the case where err is not an Error
-                    console.log(err);
-                    throw err;
                 }
-            }
+                ];
+            res.json(data);
         }
-    
-        return request();
     }
 
     private async getUserActiva(userId: string) {
@@ -104,7 +174,18 @@ class AgenteController extends AbstractController{
             
         } catch (err) {
             console.log(err);
-            throw new Error('Internal server error' + err);
+            const data = [
+                {
+                    "User": {
+                        "IdentityInfo": {
+                            "FirstName": "...",
+                            "LastName": "..."
+                        },
+                        "Username": "..."
+                    }
+                }
+            ];
+            return data;
         }
     }
 
@@ -121,7 +202,17 @@ class AgenteController extends AbstractController{
             
         } catch (err) {
             console.log(err);
-            throw new Error('Internal server error' + err);
+            const data = [
+                {
+                    "Items": [
+                        {
+                            "FirstName": "...",
+                            "LastName": "..."
+                        }
+                    ]
+                }
+            ];
+            return data;
         }
     }
 
@@ -146,7 +237,6 @@ class AgenteController extends AbstractController{
                 .filter((contact) => !contact.DisconnectTimestamp)
                 .map(async (contact) => {
                     const numberData = await this.getNumberActiva(contact.Id? contact.Id : '');
-                    // const transcripcion = await this.getTranscripcionActiva(contact.Id? contact.Id : '');
                     
                     let customerNumber;
                     let currentTime;
@@ -158,9 +248,9 @@ class AgenteController extends AbstractController{
                         currentTime = numberData[0].Attributes["CurrentTime"];
 
                         // Calculate elapsed time
-                        const initiationTimestamp = new Date(contact.InitiationTimestamp? contact.InitiationTimestamp : '');
+                        const EnqueueTimestamp = new Date(contact.QueueInfo?.EnqueueTimestamp? contact.QueueInfo?.EnqueueTimestamp : '');
                         const currentTimestamp = new Date(currentTime);
-                        elapsedTimeInMilliseconds = currentTimestamp.getTime() - initiationTimestamp.getTime();
+                        elapsedTimeInMilliseconds = currentTimestamp.getTime() - EnqueueTimestamp.getTime();
                         let elapsedTimeInSeconds = Math.floor(elapsedTimeInMilliseconds / 1000);
                         let minutes = Math.floor(elapsedTimeInSeconds / 60);
                         let seconds = elapsedTimeInSeconds % 60;
@@ -183,12 +273,11 @@ class AgenteController extends AbstractController{
                            
                             NombreCliente: nombreCliente,
                             NombreAgente: nombreAgente,
-                            InitiationTimestamp: contact.InitiationTimestamp,
+                            EnqueueTimestamp: contact.QueueInfo?.EnqueueTimestamp,
                             CurrentTime: currentTime,
                             ElapsedTime: elapsedTime,
                             Sentimiento: sentimiento,
                             UserNameAgente: usernameAgente,
-                            //Transcripcion: transcripcion
                             
                         };
                     }
@@ -196,11 +285,22 @@ class AgenteController extends AbstractController{
                 }));
             res.status(200).json(llamada);
 
-            console.log(command);
+            console.log(llamada);
             
         } catch (err) {
             console.log(err);
-            res.status(500).send('Internal server error' + err);
+            const llamada = [
+                {
+                    "NombreCliente": "...",
+                    "NombreAgente": "...",
+                    "InitiationTimestamp": "2024-05-27T21:48:40.526Z",
+                    "CurrentTime": "2024-06-01T06:22:42.117319",
+                    "ElapsedTime": "...",
+                    "Sentimiento": "...",
+                    "UserNameAgente": "..."
+                }
+            ];
+            res.json(llamada)
         }
     }
 
@@ -211,10 +311,7 @@ class AgenteController extends AbstractController{
             const input = {
                 InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2', // required
                 TimeRange: {
-                    Type: "INITIATION_TIMESTAMP", // puedes cambiar esto a "SCHEDULED_TIMESTAMP", "CONNECTED_TO_AGENT_TIMESTAMP" o "DISCONNECT_TIMESTAMP" según sea necesario
-                    // StartTime: new Date("2024-05-27T00:00:00Z"), // Comienzo del día 27 de mayo de 2024
-                    // EndTime: new Date("2024-05-27T23:59:59Z"), // Final del día 27 de mayo de 2024
-
+                    Type: "INITIATION_TIMESTAMP", 
                     StartTime: st, // Comienzo del día v2
                     EndTime: et, // Final del día v2
                 }
@@ -238,24 +335,6 @@ class AgenteController extends AbstractController{
             "mensaje": "Prueba exitosa"
         }
         res.status(200).json(respuesta);
-    }
-
-    private async getTranscripcion1(req: Request, res: Response) {
-        try {
-            // const contactId = req.params.contactId;
-            const input = {
-                InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2', // required
-                ContactId: 'efca4975-7066-49df-ba18-dff5282e6469' // required
-            };
-            
-            // Obtener las métricas actuales
-            const command = await connectLens.listRealtimeContactAnalysisSegments(input).promise();
-            res.status(200).json([command]);
-            console.log(command);
-        } catch (err) {
-            console.log(err);
-            res.status(500).send('Internal server error' + err);
-        }
     }
 
     private async getTranscripcion2(req: Request, res: Response) {
