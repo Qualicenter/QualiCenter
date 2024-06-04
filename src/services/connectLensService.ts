@@ -1,4 +1,4 @@
-import * as AWS from 'aws-sdk';
+import * as AWS from 'aws-sdk'
 import { AWS_REGION, AWS_ACCESS_KEY_ID_LENS, AWS_SECRET_ACCESS_KEY_LENS  } from '../config';
 
 AWS.config.update({
