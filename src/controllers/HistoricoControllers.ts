@@ -44,7 +44,7 @@ class HistoricoController extends AbstractController{
         this.router.get('/consultaEspera', this.consultaEspera.bind(this));
 
     
-        //Consulta en base a los minutos en la base de datos de cada KPI
+        //Consulta en base a los minutos en la base de datos de cada KPI, viene de KPIMin
         //Consulta de abandono por minutos
         this.router.get('/abandonoMn', this.consultaAbandonoMn.bind(this));
 
@@ -59,6 +59,9 @@ class HistoricoController extends AbstractController{
        
         //Consulta de espera por minutos
         this.router.get('/esperaMn', this.consultaEsperaMn.bind(this));
+
+        //Consulta de KPIs del dia anterior
+        this.router.get('/consultaDia', this.consultaDia.bind(this));
        
 
 
@@ -325,11 +328,6 @@ class HistoricoController extends AbstractController{
 
             const specificDate = new Date("2024-06-18T" + hora + ":" + minuto +":00.000Z");
 
-            console.log(hora, minuto);
-
-            // const specificDate = new Date("2024-06-18T16:10:00.000Z");
-
-            // "2024-06-18T16:00:00.000Z"
 
             // const inicio =  new Date(new Date().getTime() - 6 * 60 * 60 * 1000);
 
@@ -616,6 +614,58 @@ class HistoricoController extends AbstractController{
             res.status(500).send('Internal server error'+err);
         }
     }
+
+    private async consultaDia(req: Request,res: Response){
+        try{
+            
+            const hoy =  new Date(new Date().getTime() - 6 * 60 * 60 * 1000).toISOString();
+            const dia = new Date (hoy).getDate() -1;
+            const mes = new Date (hoy).getMonth();
+            const año = new Date (hoy).getFullYear();
+            const fecha = año + "-" + mes + "-" + dia;
+
+            const docClient = new DocumentClient();
+            const query = {
+                TableName: 'KPIPrueba-DEV',
+                FilterExpression: 'Fecha >= :start AND Fecha <= :end',
+                ExpressionAttributeValues: {
+                ':start': new Date(fecha).toISOString().split('T')[0]+'T00:00:00.000Z',//Hora ajustada   
+              
+                ':end': new Date(fecha).toISOString().split('T')[0]+'T23:59:59.999Z',//Hora ajustada   
+                },
+                ScanIndexForward: true, 
+              };
+          
+            const metricas = await docClient.scan(query).promise();
+            const metricaLst: any = [];
+    
+            if (metricas.Items) {
+                for (const kpi of metricas.Items) {
+                    if (kpi) {
+                        const metric = (kpi as any).Metrica;
+                        const tipo = (kpi as any).Tipo; 
+                        const fecha = (kpi as any).Fecha.split('T')[0];
+                        metricaLst.push([metric, tipo, fecha]);
+                    }
+                }
+            }
+
+            const enOrden = metricaLst.sort((a: any, b:any) => {
+                const dateA = new Date(a[2]); 
+                const dateB = new Date(b[2]);
+            
+                return dateA.getTime() - dateB.getTime();
+            });
+
+            res.status(200).send(metricaLst);
+            console.log('Metrica abandono enviada');
+
+        }catch(err){
+            console.log(err)
+            res.status(500).send('Internal server error'+err);
+        }
+    }
+    
 
 }
 

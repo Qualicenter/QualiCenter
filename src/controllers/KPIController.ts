@@ -178,7 +178,8 @@ class KPIsController extends AbstractController{
             const info = {
                 ResourceArn: 'arn:aws:connect:us-east-1:744102162455:instance/e730139b-8673-445e-8307-c3a9250199a2', 
                 //QUINCE MINUTOS
-                StartTime: new Date(new Date().getTime() - 24 * 60 * 60 * 1000), 
+                StartTime: new Date(new Date().getTime() - 5 * 60 * 1000), 
+                // StartTime: new Date(new Date().getTime() - 24 * 60 * 60 * 1000), 
                 EndTime: new Date() ,
                 Filters: [
                     {

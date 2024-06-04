@@ -14,10 +14,10 @@ const KPIPruebaModel = dynamodb.define('kpiPrueba', {
     tableName:`KPIPrueba${PREFIX_NAME}`
 });
 
-// dynamodb.createTables((err) =>{
-//     if (err)
-//         return console.log(err);
-//     console.log('Tabla creada exitosamente')
-// })
+dynamodb.createTables((err) =>{
+    if (err)
+        return console.log(err);
+    console.log('Tabla creada exitosamente')
+})
 
 export default KPIPruebaModel;
