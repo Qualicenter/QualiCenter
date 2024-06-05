@@ -22,8 +22,8 @@ class EncuestaController extends AbstractController {
   protected initRoutes(): void {
     //Como especificamos el get, podemos usarlo como atributo en lugar de metodo
     //Similar a la promesa de javaScript
-    this.router.post("/postEncuestaPipeline", this.postEncuestaPipeline.bind(this));
-    this.router.get("/getEncuestaPipeline", this.getEncuestaPipeline.bind(this));
+    this.router.post("/postEncuesta", this.postEncuesta.bind(this));
+    this.router.get("/getEncuesta", this.getEncuesta.bind(this));
 
   }
 
@@ -31,18 +31,18 @@ class EncuestaController extends AbstractController {
   //Metodos de instancia
   //Se declara privada porque solo init routes la va a usar
 
-  private async getEncuestaPipeline(req: Request, res: Response) {
+  private async getEncuesta(req: Request, res: Response) {
     try {
-      const games = await EncuestaModel.scan().exec().promise();
-      console.log(games);
-      res.status(200).send(games[0].Items);
+      const encuesta = await EncuestaModel.scan().exec().promise();
+      console.log(encuesta);
+      res.status(200).send(encuesta[0].Items);
     } catch (error) {
       console.log(error);
       res.status(500).send("Internal Server Error " + error);
     }
   }
 
-  private async postEncuestaPipeline(req: Request, res: Response) {
+  private async postEncuesta(req: Request, res: Response) {
     try {
       console.log(req.body);
       await EncuestaModel.create(req.body); //INSERT
