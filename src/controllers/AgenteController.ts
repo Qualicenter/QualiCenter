@@ -289,18 +289,7 @@ class AgenteController extends AbstractController{
             
         } catch (err) {
             console.log(err);
-            const llamada = [
-                {
-                    "NombreCliente": "...",
-                    "NombreAgente": "...",
-                    "InitiationTimestamp": "2024-05-27T21:48:40.526Z",
-                    "CurrentTime": "2024-06-01T06:22:42.117319",
-                    "ElapsedTime": "...",
-                    "Sentimiento": "...",
-                    "UserNameAgente": "..."
-                }
-            ];
-            res.json(llamada)
+            res.status(500).send('FAILED TO GET CALL' + err);
         }
     }
 
