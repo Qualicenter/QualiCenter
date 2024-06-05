@@ -353,13 +353,9 @@ class HistoricoController extends AbstractController{
             const hora = new Date().getHours();
             const minuto = new Date().getMinutes();
 
-            const specificDate = new Date("2024-06-18T" + hora + ":" + minuto +":00.000Z");
+            const specificDate = new Date('2024-06-18T' + hora.toString().padStart(2, '0') + ':' + minuto.toString().padStart(2, '0') +':00.000Z');
 
-            console.log(hora, minuto);
-            console.log(specificDate);
 
-            // const specificDate = new Date("2024-06-18T16:10:00.000Z");
-    
             const docClient = new DocumentClient();
             const query = {
                 TableName: 'KPIMinPrueba-DEV',
@@ -416,7 +412,7 @@ class HistoricoController extends AbstractController{
             const hora = new Date().getHours();
             const minuto = new Date().getMinutes();
 
-            const specificDate = new Date("2024-06-18T" + hora + ":" + minuto +":00.000Z");
+            const specificDate = new Date('2024-06-18T' + hora.toString().padStart(2, '0') + ':' + minuto.toString().padStart(2, '0') +':00.000Z');
 
             // const inicio =  new Date(new Date().getTime() - 6 * 60 * 60 * 1000);
 
@@ -476,7 +472,7 @@ class HistoricoController extends AbstractController{
             const hora = new Date().getHours();
             const minuto = new Date().getMinutes();
 
-            const specificDate = new Date("2024-06-18T" + hora + ":" + minuto +":00.000Z");
+            const specificDate = new Date('2024-06-18T' + hora.toString().padStart(2, '0') + ':' + minuto.toString().padStart(2, '0') +':00.000Z');
 
             // const inicio =  new Date(new Date().getTime() - 6 * 60 * 60 * 1000);
 
@@ -535,7 +531,7 @@ class HistoricoController extends AbstractController{
             const hora = new Date().getHours();
             const minuto = new Date().getMinutes();
 
-            const specificDate = new Date("2024-06-18T" + hora + ":" + minuto +":00.000Z");
+            const specificDate = new Date('2024-06-18T' + hora.toString().padStart(2, '0') + ':' + minuto.toString().padStart(2, '0') +':00.000Z');
 
             // const inicio =  new Date(new Date().getTime() - 6 * 60 * 60 * 1000);
 
@@ -594,7 +590,7 @@ class HistoricoController extends AbstractController{
             const hora = new Date().getHours();
             const minuto = new Date().getMinutes();
 
-            const specificDate = new Date("2024-06-18T" + hora + ":" + minuto +":00.000Z");
+            const specificDate = new Date('2024-06-18T' + hora.toString().padStart(2, '0') + ':' + minuto.toString().padStart(2, '0') +':00.000Z');
 
             // const inicio =  new Date(new Date().getTime() - 6 * 60 * 60 * 1000);
 
