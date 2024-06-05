@@ -356,9 +356,9 @@ class HistoricoController extends AbstractController{
             const specificDate = new Date("2024-06-18T" + hora + ":" + minuto +":00.000Z");
 
             console.log(hora, minuto);
+            console.log(specificDate);
 
-            // const inicio =  new Date(new Date().getTime() - 6 * 60 * 60 * 1000);
-
+            // const specificDate = new Date("2024-06-18T16:10:00.000Z");
     
             const docClient = new DocumentClient();
             const query = {
