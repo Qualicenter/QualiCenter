@@ -71,9 +71,6 @@ class CallsDataController extends AbstractController {
     
     private async updateCallData(req: Request, res: Response) {
         const { clientContactId, finalDuration } = req.body;
-        // id from params
-        // db.update where Id:id
-
         // Update the call data with the provided clientContactId:
         //      Update the field finalDuration to the body final duration
         //      Update the field ended to true
