@@ -21,9 +21,7 @@ class AgenteController extends AbstractController{
     protected initRoutes(): void {
         
         // Transcripción de prueba elegante (usada en los videos)
-        this.router.get('/consultaTranscripcionPrueba',this.getTranscripcionPrueba.bind(this));
         this.router.get('/consultaTranscripcion2/:contactId',this.getTranscripcion2.bind(this));
-        this.router.get('/consultaTranscripcionActiva',this.getTranscripcionSupervisorActiva.bind(this));
         this.router.get('/prueba',this.getPrueba.bind(this));
         this.router.get('/consultaCustomerInfo/:contactId', this.getCustomerInfo.bind(this));
         this.router.get('/infoAgente/:agenteNombre', this.getInfoAgente.bind(this));
@@ -33,61 +31,7 @@ class AgenteController extends AbstractController{
 
     }
 
-    private async getTranscripcionSupervisorActiva(req: Request,res: Response){
-        try {
-            const st = new Date(new Date().getTime() - (1000 * 60 * 60 * 24)); // Hace un día
-            const et = new Date(new Date().getTime() - (1000)); // Hace un segundo
-            const input = {
-                InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2', // required
-                TimeRange: {
-                    Type: "INITIATION_TIMESTAMP", 
-                    StartTime: st, // Comienzo del día 
-                    EndTime: et, // Final del día 
-                }
-            };
-            const command = await connect.searchContacts(input).promise();
-            const result = ([command]);
-            await Promise.all(result[0].Contacts
-                .filter((contact) => !contact.DisconnectTimestamp)
-                .map(async (contact) => {
-                    const transcripcion = await this.getTranscripcion1(res ,contact.Id? contact.Id : '');
-                    return transcripcion
-                }));
-            
-        } catch (err) {
-            console.log(err);
-            const llamadaError = [
-                {
-                    "Segments": [
-                        {
-                            "Transcript": {
-                                "Id": "151fdea7-60ac-4136-8d76-3dc29b3c2ecd",
-                                "ParticipantId": "CUSTOMER",
-                                "ParticipantRole": "CUSTOMER",
-                                "Content": "...",
-                                "BeginOffsetMillis": 757,
-                                "EndOffsetMillis": 1275,
-                                "Sentiment": "NEUTRAL"
-                            }
-                        },
-                        {
-                            "Transcript": {
-                                "Id": "151fdea7-60ac-4136-8d76-3dc29b3c2ecd",
-                                "ParticipantId": "AGENT",
-                                "ParticipantRole": "AGENT",
-                                "Content": "...",
-                                "BeginOffsetMillis": 757,
-                                "EndOffsetMillis": 1275,
-                                "Sentiment": "NEUTRAL"
-                            }
-                        },
-                    ]
-                
-                }
-                ];
-            res.json(llamadaError)
-        }
-    }
+    
 
     private async getNumberActiva(initialContactId: string) {
         try {
@@ -223,16 +167,19 @@ class AgenteController extends AbstractController{
             const input = {
                 InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2', // required
                 TimeRange: {
-                    Type: "INITIATION_TIMESTAMP", // puedes cambiar esto a "SCHEDULED_TIMESTAMP", "CONNECTED_TO_AGENT_TIMESTAMP" o "DISCONNECT_TIMESTAMP" según sea necesario
-                    // StartTime: new Date("2024-05-27T00:00:00Z"), // Comienzo del día 27 de mayo de 2024
-                    // EndTime: new Date("2024-05-27T23:59:59Z"), // Final del día 27 de mayo de 2024
-
+                    Type: "INITIATION_TIMESTAMP", 
                     StartTime: st, // Comienzo del día v2
                     EndTime: et, // Final del día v2
                 }
             };
             const command = await connect.searchContacts(input).promise();
             const result = ([command]);
+            const filteredContacts = result[0].Contacts.filter((contact) => !contact.DisconnectTimestamp);
+
+            if (filteredContacts.length === 0) {
+                res.status(400).send('No contacts found');
+                return;
+            }
             const llamada = await Promise.all(result[0].Contacts
                 .filter((contact) => !contact.DisconnectTimestamp)
                 .map(async (contact) => {
@@ -256,6 +203,8 @@ class AgenteController extends AbstractController{
                         let seconds = elapsedTimeInSeconds % 60;
 
                         elapsedTime = minutes + ":" + seconds;
+                    } else {
+                        throw new Error('No customer number found');
                     }
                     if (customerNumber && numberData) {
                         const agentInfo = await this.getUserActiva(contact.AgentInfo?.Id ? contact.AgentInfo.Id : '');
@@ -270,7 +219,7 @@ class AgenteController extends AbstractController{
                             usernameAgente = agentInfo[0].User.Username!;
                         }
                         return {
-                           
+                            contactId: contact.Id,
                             NombreCliente: nombreCliente,
                             NombreAgente: nombreAgente,
                             EnqueueTimestamp: contact.QueueInfo?.EnqueueTimestamp,
@@ -280,27 +229,30 @@ class AgenteController extends AbstractController{
                             UserNameAgente: usernameAgente,
                             
                         };
+                    } else {
+                        throw new Error('No customer number found');
                     }
                     
                 }));
             res.status(200).json(llamada);
 
-            console.log(llamada);
+            console.log("Llamada activa:", llamada);
             
         } catch (err) {
             console.log(err);
             const llamada = [
                 {
+                    "contactId": null,
                     "NombreCliente": "...",
                     "NombreAgente": "...",
                     "InitiationTimestamp": "2024-05-27T21:48:40.526Z",
                     "CurrentTime": "2024-06-01T06:22:42.117319",
-                    "ElapsedTime": "...",
+                    "ElapsedTime": "00:00",
                     "Sentimiento": "...",
                     "UserNameAgente": "..."
                 }
             ];
-            res.json(llamada)
+            res.status(400).json(llamada)
         }
     }
 
@@ -533,250 +485,6 @@ class AgenteController extends AbstractController{
             console.log(err);
             res.status(500).send('Internal server error' + err);
         }
-    }
-
-    private getTranscripcionPrueba(req: Request,res: Response){
-        
-        const data = [
-        {
-            "Segments": [
-                {
-                    "Transcript": {
-                        "Id": "151fdea7-60ac-4136-8d76-3dc29b3c2ecd",
-                        "ParticipantId": "AGENT",
-                        "ParticipantRole": "AGENT",
-                        "Content": "Buenas tardes, gracias por llamar a Qualicenter. ¿En qué puedo asistirle hoy?",
-                        "BeginOffsetMillis": 757,
-                        "EndOffsetMillis": 1275,
-                        "Sentiment": "NEUTRAL"
-                    }
-                },
-                {
-                    "Transcript": {
-                        "Id": "64038535-f936-4546-9108-0a8fb820602c",
-                        "ParticipantId": "CUSTOMER",
-                        "ParticipantRole": "CUSTOMER",
-                        "Content": "Hola, buenas tardes. Acabo de tener un accidente con mi coche y necesito reportarlo.",
-                        "BeginOffsetMillis": 867,
-                        "EndOffsetMillis": 1307,
-                        "Sentiment": "NEUTRAL"
-                    }
-                },
-                {
-                    "Transcript": {
-                        "Id": "dbbff659-8c98-4cd4-85a0-a4c8f60d2d90",
-                        "ParticipantId": "AGENT",
-                        "ParticipantRole": "AGENT",
-                        "Content": "Lamento escuchar eso. Espero que usted esté bien. ¿Hay alguien herido?",
-                        "BeginOffsetMillis": 4880,
-                        "EndOffsetMillis": 6235,
-                        "Sentiment": "NEUTRAL"
-                    }
-                },
-                {
-                    "Transcript": {
-                        "Id": "f06fac63-7f10-4ab5-8c95-3087e8830946",
-                        "ParticipantId": "CUSTOMER",
-                        "ParticipantRole": "CUSTOMER",
-                        "Content": "No, por suerte no hay heridos. Pero mi coche tiene daños importantes.",
-                        "BeginOffsetMillis": 10427,
-                        "EndOffsetMillis": 21095,
-                        "Sentiment": "POSITIVE"
-                    }
-                },
-                {
-                    "Transcript": {
-                        "Id": "d13a14fa-9d80-48c7-86b9-69a20d6eab5f",
-                        "ParticipantId": "AGENT",
-                        "ParticipantRole": "AGENT",
-                        "Content": "Me alegra saber que todos están bien. Para proceder con el reporte, necesito algunos detalles. ¿Podría darme su nombre completo y número de póliza?",
-                        "BeginOffsetMillis": 24150,
-                        "EndOffsetMillis": 27925,
-                        "Sentiment": "POSITIVE"
-                    }
-                },
-                {
-                    "Transcript": {
-                        "Id": "9a36a828-e92d-46ca-a46a-0b54fca11a23",
-                        "ParticipantId": "CUSTOMER",
-                        "ParticipantRole": "CUSTOMER",
-                        "Content": "Claro, mi nombre es Juan Pérez y mi número de póliza es 123456789.",
-                        "BeginOffsetMillis": 31310,
-                        "EndOffsetMillis": 39355,
-                        "Sentiment": "POSITIVE"
-                    }
-                },
-                {
-                    "Transcript": {
-                        "Id": "e3faee5b-65f0-47ce-bc63-ec223ab3c956",
-                        "ParticipantId": "AGENT",
-                        "ParticipantRole": "AGENT",
-                        "Content": "Gracias, señor Pérez. Ahora, ¿podría describirme brevemente cómo ocurrió el accidente?",
-                        "BeginOffsetMillis": 42240,
-                        "EndOffsetMillis": 45852,
-                        "Sentiment": "NEUTRAL"
-                    }
-                },
-                {
-                    "Transcript": {
-                        "Id": "624cecfe-52f7-4577-9d15-410a9840ecda",
-                        "ParticipantId": "CUSTOMER",
-                        "ParticipantRole": "CUSTOMER",
-                        "Content": "Sí, estaba conduciendo por la avenida principal cuando un coche se saltó el semáforo y chocó contra mi lateral derecho.",
-                        "BeginOffsetMillis": 49587,
-                        "EndOffsetMillis": 54267,
-                        "Sentiment": "NEUTRAL"
-                    }
-                },
-                {
-                    "Transcript": {
-                        "Id": "57e5499d-887e-43ad-a2d6-47d7fc779fdf",
-                        "ParticipantId": "AGENT",
-                        "ParticipantRole": "AGENT",
-                        "Content": "Entiendo. ¿Tiene información sobre el otro conductor, como su nombre, número de matrícula o su aseguradora?",
-                        "BeginOffsetMillis": 60077,
-                        "EndOffsetMillis": 63345,
-                        "Sentiment": "NEGATIVE"
-                    }
-                },
-                {
-                    "Transcript": {
-                        "Id": "458a7316-cd99-4bd0-955c-256442ff2ff6",
-                        "ParticipantId": "CUSTOMER",
-                        "ParticipantRole": "CUSTOMER",
-                        "Content": "Sí, tengo su nombre y matrícula. Se llama María López y su matrícula es ABC1234. Me dijo que también está asegurada con ustedes.",
-                        "BeginOffsetMillis": 66250,
-                        "EndOffsetMillis": 73625,
-                        "Sentiment": "POSITIVE"
-                    }
-                },
-                {
-                    "Transcript": {
-                        "Id": "538f11be-7965-4b48-8d1c-b38d4bd4d5b5",
-                        "ParticipantId": "AGENT",
-                        "ParticipantRole": "AGENT",
-                        "Content": "Perfecto. Eso facilitará las cosas. ¿Llamaron a la policía para hacer un informe del accidente?",
-                        "BeginOffsetMillis": 77547,
-                        "EndOffsetMillis": 78125,
-                        "Sentiment": "POSITIVE"
-                    }
-                },
-                {
-                    "Transcript": {
-                        "Id": "538f11be-7965-4b48-8d1c-b38d4234d5b5",
-                        "ParticipantId": "CUSTOMER",
-                        "ParticipantRole": "CUSTOMER",
-                        "Content": "Sí, ya vino la policía y tomaron nota de todo. Me dieron una copia del informe.",
-                        "BeginOffsetMillis": 77547,
-                        "EndOffsetMillis": 78125,
-                        "Sentiment": "POSITIVE"
-                    }
-                },
-                {
-                    "Transcript": {
-                        "Id": "238f11be-7965-4b48-8d1c-b38d4bd4d5b5",
-                        "ParticipantId": "AGENT",
-                        "ParticipantRole": "AGENT",
-                        "Content": " Excelente. Eso nos será muy útil. Ahora, necesito saber la ubicación exacta del accidente y si su coche es remolcable.",
-                        "BeginOffsetMillis": 77547,
-                        "EndOffsetMillis": 78125,
-                        "Sentiment": "POSITIVE"
-                    }
-                },
-                {
-                    "Transcript": {
-                        "Id": "532311be-7965-4b48-8d1c-b38d4bd4d5b5",
-                        "ParticipantId": "CUSTOMER",
-                        "ParticipantRole": "CUSTOMER",
-                        "Content": "Fue en la intersección de la avenida Principal con la calle 5. Mi coche no puede moverse, necesita ser remolcado.",
-                        "BeginOffsetMillis": 77547,
-                        "EndOffsetMillis": 78125,
-                        "Sentiment": "POSITIVE"
-                    }
-                },
-                {
-                    "Transcript": {
-                        "Id": "538f23be-7965-4b48-8d1c-b38d4bd4d5b5",
-                        "ParticipantId": "AGENT",
-                        "ParticipantRole": "AGENT",
-                        "Content": "Entendido. Vamos a enviar una grúa a su ubicación. ¿Se encuentra seguro y fuera del vehículo mientras espera?",
-                        "BeginOffsetMillis": 77547,
-                        "EndOffsetMillis": 78125,
-                        "Sentiment": "POSITIVE"
-                    }
-                },
-                {
-                    "Transcript": {
-                        "Id": "538f11be-7965-7848-8d1c-b38d4bd4d5b5",
-                        "ParticipantId": "CUSTOMER",
-                        "ParticipantRole": "CUSTOMER",
-                        "Content": " Sí, estoy en un lugar seguro.",
-                        "BeginOffsetMillis": 77547,
-                        "EndOffsetMillis": 78125,
-                        "Sentiment": "POSITIVE"
-                    }
-                },
-                {
-                    "Transcript": {
-                        "Id": "538f11be-4335-4b48-8d1c-b38d4bd4d5b5",
-                        "ParticipantId": "AGENT",
-                        "ParticipantRole": "AGENT",
-                        "Content": "Perfecto, señor Pérez. Enviaremos una grúa lo antes posible. También un ajustador se pondrá en contacto con usted dentro de las próximas 24 horas para evaluar los daños y proceder con la reclamación. ¿Hay algo más en lo que pueda ayudarle hoy?",
-                        "BeginOffsetMillis": 77547,
-                        "EndOffsetMillis": 78125,
-                        "Sentiment": "POSITIVE"
-                    }
-                },
-                {
-                    "Transcript": {
-                        "Id": "538f11be-7965-4b48-8d1c-b38d4bd4d5b5",
-                        "ParticipantId": "CUSTOMER",
-                        "ParticipantRole": "CUSTOMER",
-                        "Content": "No, eso sería todo por ahora. Muchas gracias por su ayuda.",
-                        "BeginOffsetMillis": 77547,
-                        "EndOffsetMillis": 78125,
-                        "Sentiment": "POSITIVE"
-                    }
-                },
-                {
-                    "Transcript": {
-                        "Id": "538f11be-7965-4b48-8d1c-b44d4bd4d5b5",
-                        "ParticipantId": "AGENT",
-                        "ParticipantRole": "AGENT",
-                        "Content": "De nada, señor Pérez. Lamento el inconveniente, pero me alegra saber que está bien. Recuerde que estamos aquí para asistirle en cualquier momento. Que tenga un buen día.",
-                        "BeginOffsetMillis": 77547,
-                        "EndOffsetMillis": 78125,
-                        "Sentiment": "POSITIVE"
-                    }
-                },
-                {
-                    "Transcript": {
-                        "Id": "538f11be-7965-4b48-333c-b38d4bd4d5b5",
-                        "ParticipantId": "CUSTOMER",
-                        "ParticipantRole": "CUSTOMER",
-                        "Content": "Gracias, igualmente. Adiós.",
-                        "BeginOffsetMillis": 77547,
-                        "EndOffsetMillis": 78125,
-                        "Sentiment": "POSITIVE"
-                    }
-                },
-                {
-                    "Transcript": {
-                        "Id": "538f11be-7965-4b48-8d1c-b38d4bd4d5b5",
-                        "ParticipantId": "AGENT",
-                        "ParticipantRole": "AGENT",
-                        "Content": "Adiós.",
-                        "BeginOffsetMillis": 77547,
-                        "EndOffsetMillis": 78125,
-                        "Sentiment": "POSITIVE"
-                    }
-                }
-            ]
-        
-        }
-        ];
-        res.json(data);
-    
     }
     
 
