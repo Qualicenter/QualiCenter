@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node -r dotenv/config dist/index.js",
-    "build:start": "tsc && node -r dotenv/config dist/index.js"
+    "build:start": "tsc && node -r dotenv/config dist/index.js",
+    "build:pm2": "tsc && pm2 start pm2.config.js"
   },
   "keywords": [],
   "author": "",
