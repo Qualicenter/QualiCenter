@@ -259,7 +259,7 @@ class KPIsController extends AbstractController{
             await KPIPruebaModel.create(kpi);
         }
 
-          console.log("KPIs MIN creados");
+          console.log("KPIs creados");
           res.status(201).send("<h1>KPIs creados</h1>"); 
         } catch (err) {
           console.error(err);
