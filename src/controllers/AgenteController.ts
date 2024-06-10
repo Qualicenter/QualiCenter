@@ -1,4 +1,4 @@
-import { Request,Response } from "express";
+import { Request, Response } from "express";
 import AbstractController from "./AbstractController";
 import connectLens from "../services/connectLensService";
 import AWS from "../services/amazonSNS";
@@ -6,32 +6,33 @@ import { connectService, customerProfilesService } from "../services/clientsServ
 import connect from "../services/connectService";
 import customer from "../services/customerService";
 
-class AgenteController extends AbstractController{
+class AgenteController extends AbstractController {
     //Singleton
     //Atributo de clase
     private static _instance: AgenteController;
     //Metodo de clase
-    public static get instance():AbstractController{
-        if(!this._instance){
+    public static get instance(): AbstractController {
+        if (!this._instance) {
             this._instance = new AgenteController("agente");
         }
         return this._instance;
     }
     //Declarar todas las rutas del controlador
     protected initRoutes(): void {
-        
+
         // Transcripción de prueba elegante (usada en los videos)
-        this.router.get('/consultaTranscripcion2/:contactId',this.getTranscripcion2.bind(this));
-        this.router.get('/prueba',this.getPrueba.bind(this));
+        this.router.get('/consultaTranscripcion2/:contactId', this.getTranscripcion2.bind(this));
+        this.router.get('/prueba', this.getPrueba.bind(this));
         this.router.get('/consultaCustomerInfo/:contactId', this.getCustomerInfo.bind(this));
+        // Agent information
         this.router.get('/infoAgente/:agenteNombre', this.getInfoAgente.bind(this));
         // Llamadas activas 
-        this.router.get('/consultaContacts',this.getContacts.bind(this));
-        this.router.get('/verificarContacts',this.verificarConctacts.bind(this));
+        this.router.get('/consultaContacts', this.getContacts.bind(this));
+        this.router.get('/verificarContacts', this.verificarConctacts.bind(this));
 
     }
 
-    
+
 
     private async getNumberActiva(initialContactId: string) {
         try {
@@ -39,11 +40,11 @@ class AgenteController extends AbstractController{
                 InstanceId: "e730139b-8673-445e-8307-c3a9250199a2", // required
                 InitialContactId: initialContactId, // use the passed in initialContactId
             };
-    
+
             const command = await connect.getContactAttributes(input).promise();
             console.log([command]);
             return ([command]);
-            
+
         } catch (err) {
             console.log(err);
             const data = [
@@ -70,7 +71,7 @@ class AgenteController extends AbstractController{
             const command = await connectLens.listRealtimeContactAnalysisSegments(input).promise();
             console.log([command, command.Segments[command.Segments.length - 1].Transcript?.Sentiment]);
             res.json([command]);
-            
+
         } catch (err) {
             console.log(err);
             const data = [
@@ -99,9 +100,9 @@ class AgenteController extends AbstractController{
                             }
                         },
                     ]
-                
+
                 }
-                ];
+            ];
             res.json(data);
         }
     }
@@ -111,11 +112,11 @@ class AgenteController extends AbstractController{
             const input = { // DescribeUserRequest
                 InstanceId: "e730139b-8673-445e-8307-c3a9250199a2", // required
                 UserId: userId, // required
-              };
+            };
             const command = await connect.describeUser(input).promise();
             console.log([command]);
             return ([command]);
-            
+
         } catch (err) {
             console.log(err);
             const data = [
@@ -139,11 +140,11 @@ class AgenteController extends AbstractController{
                 DomainName: "amazon-connect-qualicentec", // required
                 KeyName: "PhoneNumber",
                 Values: [phoneNumber]
-                }
+            }
             const command = await customer.searchProfiles(input).promise();
             console.log([command])
             return ([command]);
-            
+
         } catch (err) {
             console.log(err);
             const data = [
@@ -167,7 +168,7 @@ class AgenteController extends AbstractController{
             const input = {
                 InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2', // required
                 TimeRange: {
-                    Type: "INITIATION_TIMESTAMP", 
+                    Type: "INITIATION_TIMESTAMP",
                     StartTime: st, // Comienzo del día v2
                     EndTime: et, // Final del día v2
                 }
@@ -183,8 +184,8 @@ class AgenteController extends AbstractController{
             const llamada = await Promise.all(result[0].Contacts
                 .filter((contact) => !contact.DisconnectTimestamp)
                 .map(async (contact) => {
-                    const numberData = await this.getNumberActiva(contact.Id? contact.Id : '');
-                    
+                    const numberData = await this.getNumberActiva(contact.Id ? contact.Id : '');
+
                     let customerNumber;
                     let currentTime;
                     let elapsedTime;
@@ -195,7 +196,7 @@ class AgenteController extends AbstractController{
                         currentTime = numberData[0].Attributes["CurrentTime"];
 
                         // Calculate elapsed time
-                        const EnqueueTimestamp = new Date(contact.QueueInfo?.EnqueueTimestamp? contact.QueueInfo?.EnqueueTimestamp : '');
+                        const EnqueueTimestamp = new Date(contact.QueueInfo?.EnqueueTimestamp ? contact.QueueInfo?.EnqueueTimestamp : '');
                         const currentTimestamp = new Date(currentTime);
                         elapsedTimeInMilliseconds = currentTimestamp.getTime() - EnqueueTimestamp.getTime();
                         let elapsedTimeInSeconds = Math.floor(elapsedTimeInMilliseconds / 1000);
@@ -212,9 +213,9 @@ class AgenteController extends AbstractController{
                         let nombreCliente = '';
                         let nombreAgente = '';
                         let usernameAgente = '';
-                        if(clientInfo && clientInfo[0] && clientInfo[0].Items && clientInfo[0].Items[0]
+                        if (clientInfo && clientInfo[0] && clientInfo[0].Items && clientInfo[0].Items[0]
                             && agentInfo && agentInfo[0] && agentInfo[0].User) {
-                            nombreCliente = clientInfo[0].Items[0].FirstName + ' ' +  clientInfo[0].Items[0].LastName;
+                            nombreCliente = clientInfo[0].Items[0].FirstName + ' ' + clientInfo[0].Items[0].LastName;
                             nombreAgente = agentInfo[0].User.IdentityInfo?.FirstName + ' ' + agentInfo[0].User.IdentityInfo?.LastName;
                             usernameAgente = agentInfo[0].User.Username!;
                         }
@@ -227,17 +228,17 @@ class AgenteController extends AbstractController{
                             ElapsedTime: elapsedTime,
                             Sentimiento: sentimiento,
                             UserNameAgente: usernameAgente,
-                            
+
                         };
                     } else {
                         throw new Error('No customer number found');
                     }
-                    
+
                 }));
             res.status(200).json(llamada);
 
             console.log("Llamada activa:", llamada);
-            
+
         } catch (err) {
             console.log(err);
             const llamada = [
@@ -263,7 +264,7 @@ class AgenteController extends AbstractController{
             const input = {
                 InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2', // required
                 TimeRange: {
-                    Type: "INITIATION_TIMESTAMP", 
+                    Type: "INITIATION_TIMESTAMP",
                     StartTime: st, // Comienzo del día v2
                     EndTime: et, // Final del día v2
                 }
@@ -271,18 +272,18 @@ class AgenteController extends AbstractController{
             const command = await connect.searchContacts(input).promise();
             const result = ([command]);
             const llamadaId = result[0].Contacts
-            .filter((contact) => !contact.DisconnectTimestamp)
-            .map((contact) => contact.Id);
+                .filter((contact) => !contact.DisconnectTimestamp)
+                .map((contact) => contact.Id);
             res.status(200).json(llamadaId);
             console.log(command);
-            
+
         } catch (err) {
             console.log(err);
             res.status(500).send('Internal server error' + err);
         }
     }
 
-    private getPrueba(req: Request,res: Response){
+    private getPrueba(req: Request, res: Response) {
         const respuesta = {
             "mensaje": "Prueba exitosa"
         }
@@ -301,7 +302,7 @@ class AgenteController extends AbstractController{
                 InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2', // required
                 ContactId: contactId // required
             };
-            
+
             // Obtener las métricas actuales
             const command = await connectLens.listRealtimeContactAnalysisSegments(input).promise();
             res.status(200).json([command]);
@@ -330,7 +331,7 @@ class AgenteController extends AbstractController{
             }
 
             const phoneNumber = getContactAttributesResponse.Attributes['Customer number'];
-            
+
             // 2. Use the phone number to get customer information
             const response = await customerProfilesService.searchProfiles({
                 DomainName: 'amazon-connect-qualicentec',
@@ -338,63 +339,54 @@ class AgenteController extends AbstractController{
                 Values: [phoneNumber],
                 MaxResults: 1
             }).promise();
-            
+
             const customerInfo = response.Items![0];
             const name = `${customerInfo.FirstName} ${customerInfo.LastName}`;
 
             const responseObject = { clientName: name };
             res.status(200).json(responseObject);
-            
+
         } catch (error) {
             console.error("Error fetching contact information:", error);
             res.status(500).send('Internal server error');
         }
     }
 
+    /* Function to get agent information */
     private async getInfoAgente(req: Request, res: Response) {
         try {
+            // Get the agent name from the request parameters
             const agentName = req.params.agenteNombre;
 
             if (!agentName) {
                 return res.status(400).send('Nombre de agente no proporcionado');
             }
 
-            // const st = new Date(new Date().getTime() - (1000 * 60 * 60 * 24 * 7)); // Hace un día
-            const st = new Date(new Date().setHours(0, 0, 0, 0)); // Hoy 00:00:00
-            const et = new Date(new Date().getTime() - (1000)); // Hace un segundo
+            const st = new Date(new Date().setHours(0, 0, 0, 0)); // Today 00:00:00
+            const et = new Date(new Date().getTime() - (1000)); // One second ago
 
-            const input4 = {
-                InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2',
-                TimeRange: { // SearchContactsTimeRange
-                    Type: "INITIATION_TIMESTAMP", // required
-                    StartTime: st, // required
-                    EndTime: et, // required
-                },
-            };
-            const data4 = await connect.searchContacts(input4).promise();
-
+            // Get all users 
             const input = {
                 InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2',
-                //getCurrentUserData
                 Filters: {
                     Queues: ['f6512e90-b9c0-413b-beb9-702a5473435a'],
                 },
             }
             const data = await connect.getCurrentUserData(input).promise();
 
-            const userIds = data?.UserDataList?.map(user => user?.User?.Id) ?? []; // recuperar los IDs de todos los usuarios
+            // Gets a list of all user IDs
+            const userIds = data?.UserDataList?.map(user => user?.User?.Id) ?? [];
 
-            // const agenteId = contactIds.find(item => userIds.includes(item.userId)); // verificar si el agente está en la lista
+            // Get the list of users where it returns the id, name, and username of the user(agent)
+            const list = await Promise.all(userIds.map(async (userId) => {
 
-             const list = await Promise.all(userIds.map(async (userId) => {
-                
+                // Get user data with the userId from the list of userIds
                 const input2 = {
                     InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2',
-                    UserId: userId ?? '',
+                    UserId: userId ?? '', // userId is retrieved from the list of userIds
                 }
                 const data2 = await connect.describeUser(input2).promise();
-                
-                
+
                 return {
                     userId: userId,
                     name: data2?.User?.IdentityInfo?.FirstName + ' ' + data2?.User?.IdentityInfo?.LastName,
@@ -402,33 +394,48 @@ class AgenteController extends AbstractController{
                 };
             }));
 
-            // comparar el agentName con el firstName y lastName del agente ****[cambiar username por name]****
+            // Compare the agentName with the firstName and lastName of the agent
             const infoAgente = list.find(item => item.name?.toLowerCase().replace(/\s/g, '') === agentName.toLowerCase().replace(/\s/g, ''));
 
+            // If the agent is not found, return an error
             if (!infoAgente || !infoAgente.name) {
                 return res.status(404).send('Agente no encontrado');
             }
 
-            // Si encontramos el agente, recuperamos sus métricas con su id
-            // ID del agente que estamos interesados
+            // If the agent is found, retrieve their metrics with their id
+            // Get the agent ID we are interested in
             const agenteId = infoAgente?.userId ?? '';
 
-            // Filtrar los contactos por el Id del AgentInfo
+            // Get all contacts (calls)
+            const input4 = {
+                InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2',
+                TimeRange: { // SearchContactsTimeRange
+                    Type: "INITIATION_TIMESTAMP",
+                    StartTime: st,
+                    EndTime: et,
+                },
+            };
+            const data4 = await connect.searchContacts(input4).promise();
+
+            // Filter contacts by AgentInfo Id
             const filteredContacts = data4.Contacts.filter(contact => contact.AgentInfo?.Id === agenteId);
 
-            // Mapear los contactos para extraer los campos requeridos
+            // Map the contacts to extract the contact id, connected time, initiation time, disconnect time, and customer name
             const contactList = await Promise.all(filteredContacts.map(async (contact) => {
+                
+                // Get customer phone number from the contact Id
                 const getContactAttributesResponse = await connectService.getContactAttributes({
                     InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2',
                     InitialContactId: contact.Id ?? ''
                 }).promise();
-
+                
                 if (!getContactAttributesResponse.Attributes) {
                     return res.status(404).send('Contact attributes not found');
                 }
 
                 const phoneNumber = getContactAttributesResponse.Attributes['Customer number'];
 
+                // Get customer information with the phone number
                 const response = await customerProfilesService.searchProfiles({
                     DomainName: 'amazon-connect-qualicentec',
                     KeyName: 'PhoneNumber',
@@ -436,6 +443,7 @@ class AgenteController extends AbstractController{
                     MaxResults: 1
                 }).promise();
 
+                // Get the customer name
                 const customerInfo = response.Items![0];
                 const name = `${customerInfo.FirstName} ${customerInfo.LastName}`;
 
@@ -448,6 +456,7 @@ class AgenteController extends AbstractController{
                 };
             }));
 
+            // Get the agent information with the metrics, such as the agent ID, name, username, calls, and data(metrics)
             const metricaAgente = [];
             if (infoAgente) {
                 const input3 = {
@@ -456,29 +465,29 @@ class AgenteController extends AbstractController{
                     EndTime: et,
                     Filters: [
                         {
-                            FilterKey: 'AGENT', // Recuperar datos de un agente específico
+                            FilterKey: 'AGENT', // Get data for a specific agent
                             FilterValues: [infoAgente.userId ?? ''],
                         },
                     ],
                     Metrics: [
                         {
                             Name: 'AVG_HANDLE_TIME',
-                        }, // Tiempo promedio de manejo de llamadas AHT
+                        }, // AHT, or average handle time, is the average amount of time an agent spends on a call.
                         {
                             Name: 'CONTACTS_HANDLED',
-                        }, // Llamadas respondidas
+                        }, // Calls handled 
                         {
                             Name: 'AGENT_NON_RESPONSE',
-                        }, // Llamadas no respondidas
+                        }, // Calls not answered 
                         {
                             Name: 'CONTACTS_ABANDONED',
-                        }, // Llamadas abandonadas
+                        }, // Calls abandoned 
                         {
                             Name: 'AGENT_ANSWER_RATE',
-                        }, // Tasa de respuesta del agente
+                        }, // Percentage of calls answered by the agent
                         {
                             Name: 'AGENT_OCCUPANCY',
-                        }, // Ocupación del agente
+                        }, // Percentage of time the agent is handling calls
                         {
                             Name: 'SERVICE_LEVEL',
                             Threshold: [ // ThresholdCollections
@@ -487,15 +496,14 @@ class AgenteController extends AbstractController{
                                     ThresholdValue: 20,
                                 },
                             ],
-                        }, // Nivel de servicio
+                        }, // Service level is the percentage of calls answered within a certain threshold
                     ],
                 };
-                
+
                 const data3 = await connect.getMetricDataV2(input3).promise();
 
                 metricaAgente.push({
                     agenteID: infoAgente.userId,
-                    //contactID: agenteId?.contactId,
                     nombre: infoAgente.name,
                     username: infoAgente.username,
                     llamadas: contactList,
@@ -508,7 +516,7 @@ class AgenteController extends AbstractController{
             res.status(500).send('Internal server error' + err);
         }
     }
-    
+
 
 }
 
