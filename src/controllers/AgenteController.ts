@@ -279,7 +279,7 @@ class AgenteController extends AbstractController{
             // const st = new Date(new Date().getTime() - (1000 * 60 * 60 * 24 * 7)); // Hace un día
             const st = new Date(new Date().setHours(0, 0, 0, 0)); // Hoy 00:00:00
             const et = new Date(new Date().getTime() - (1000)); // Hace un segundo
-            // console.log(st, et);
+
             const input4 = {
                 InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2',
                 TimeRange: { // SearchContactsTimeRange
@@ -303,28 +303,30 @@ class AgenteController extends AbstractController{
 
             // const agenteId = contactIds.find(item => userIds.includes(item.userId)); // verificar si el agente está en la lista
 
-            const list = [];
-            for (const userId of userIds) {
+             const list = await Promise.all(userIds.map(async (userId) => {
+                
                 const input2 = {
                     InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2',
-                    UserId: userId ?? '', // Proporcionar el ID de usuario, en caso de que no se proporcione, se utilizará una cadena vacía
+                    UserId: userId ?? '',
                 }
                 const data2 = await connect.describeUser(input2).promise();
                 
-                list.push({
+                
+                return {
                     userId: userId,
-                    name: data2.User?.IdentityInfo?.FirstName + ' ' + data2.User?.IdentityInfo?.LastName,
-                    username: data2.User?.Username,
-                    //data: data2,
-                });
-            }
+                    name: data2?.User?.IdentityInfo?.FirstName + ' ' + data2?.User?.IdentityInfo?.LastName,
+                    username: data2?.User?.Username,
+                };
+            }));
 
             // comparar el agentName con el firstName y lastName del agente ****[cambiar username por name]****
-            const infoAgente = list.find(item => item.username?.toLowerCase().replace(/\s/g, '') === agentName.toLowerCase().replace(/\s/g, ''));
+            const infoAgente = list.find(item => item.name?.toLowerCase().replace(/\s/g, '') === agentName.toLowerCase().replace(/\s/g, ''));
 
+            if (!infoAgente || !infoAgente.name) {
+                return res.status(404).send('Agente no encontrado');
+            }
 
             // Si encontramos el agente, recuperamos sus métricas con su id
-
             // ID del agente que estamos interesados
             const agenteId = infoAgente?.userId ?? '';
 
@@ -332,13 +334,36 @@ class AgenteController extends AbstractController{
             const filteredContacts = data4.Contacts.filter(contact => contact.AgentInfo?.Id === agenteId);
 
             // Mapear los contactos para extraer los campos requeridos
-            const contacts = filteredContacts.map(contact => ({
-                ContactId: contact.Id,
-                ConnectedToAgentTimestamp: contact.AgentInfo?.ConnectedToAgentTimestamp,
-                InitiationTimestamp: contact.InitiationTimestamp,
-                DisconnectTimestamp: contact.DisconnectTimestamp
+            const contactList = await Promise.all(filteredContacts.map(async (contact) => {
+                const getContactAttributesResponse = await connectService.getContactAttributes({
+                    InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2',
+                    InitialContactId: contact.Id ?? ''
+                }).promise();
+
+                if (!getContactAttributesResponse.Attributes) {
+                    return res.status(404).send('Contact attributes not found');
+                }
+
+                const phoneNumber = getContactAttributesResponse.Attributes['Customer number'];
+
+                const response = await customerProfilesService.searchProfiles({
+                    DomainName: 'amazon-connect-qualicentec',
+                    KeyName: 'PhoneNumber',
+                    Values: [phoneNumber],
+                    MaxResults: 1
+                }).promise();
+
+                const customerInfo = response.Items![0];
+                const name = `${customerInfo.FirstName} ${customerInfo.LastName}`;
+
+                return {
+                    ContactId: contact.Id,
+                    ConnectedToAgentTimestamp: contact.AgentInfo?.ConnectedToAgentTimestamp,
+                    InitiationTimestamp: contact.InitiationTimestamp,
+                    DisconnectTimestamp: contact.DisconnectTimestamp,
+                    CustomerName: name,
+                };
             }));
-            //console.log(contacts);
 
             const metricaAgente = [];
             if (infoAgente) {
@@ -390,14 +415,11 @@ class AgenteController extends AbstractController{
                     //contactID: agenteId?.contactId,
                     nombre: infoAgente.name,
                     username: infoAgente.username,
-                    llamadas: contacts,
+                    llamadas: contactList,
                     data: data3
                 });
-                //res.status(200).json([infoAgente, data3]);
             }
             res.status(200).json(metricaAgente);
-            //res.status(200).json([list, xAgente]);
-            //res.status(200).json(data);
         } catch (err) {
             console.log(err);
             res.status(500).send('Internal server error' + err);
