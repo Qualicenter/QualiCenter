@@ -3,9 +3,10 @@ import AbstractController from "./AbstractController";
 import { DocumentClient } from "aws-sdk/clients/dynamodb";
 
 
+//The class HistoricoController extends AbstractController, is responsible to access 
+//the database and retrieve the historical data of the KPIs.
 class HistoricoController extends AbstractController{
-    //Singleton 
-    //Atributo de clase
+
     private static _instance: HistoricoController;
     //Metodo de la clase 
     public static get instance(): AbstractController{
@@ -14,49 +15,51 @@ class HistoricoController extends AbstractController{
         }
         return this._instance;
     }
-    //Declarar todas las rutas del controlador
+    //All the routes of the controller are defined in the initRoutes method.
     protected initRoutes(): void {
+
+        //The route /testagent is used to test the connection with the server.
         this.router.get('/testagent', this.getTestAgent.bind(this) /*callback*/);
 
-        //Informacion de KPIS historicos a partir de fecha de inciio especificada
-        //Consulta de abandono
+        //Gets the KPIs historical data from the specified start date
+        //Abandonment query by date range
         this.router.get('/consultaAbandono', this.consultaAbandono.bind(this));
 
-        //Consulta de servicio
+        //Service level query by date range
         this.router.get('/consultaServicio', this.consultaServicio.bind(this));
 
-        //Consulta de ocupacion
+        //Occupancy query by date range
         this.router.get('/consultaOcupacion', this.consultaOcupacion.bind(this)); 
 
-        //Consulta de tiempo de llamada
+        //Total time of call query by date range
         this.router.get('/consultaTiempo', this.consultaTiempo.bind(this));
 
-        //Consulta de tiempo de espera
+        //Hold time query by date range
         this.router.get('/consultaEspera', this.consultaEspera.bind(this));
         
-        //Consulta en base a minutos y horas en la base de datos de cada KPI
-        //Consulta de abandono por minutos
+        //Gets the KPIs historical data according to minutes specified
+        //Abandonment query by minutes given
         this.router.get('/abandonoMn', this.consultaAbandonoMn.bind(this));
 
-        //Consulta de servicio por minutos
+        //Service level query by minutes given
         this.router.get('/servicioMn', this.consultaServicoMn.bind(this));
        
-        //Consulta de ocupacion por minutos
+        //Occupancy query by minutes given
         this.router.get('/ocupacionMn', this.consultaOcupMn.bind(this));
        
-        //Consulta de tiempo por minutos
+        //Total time of call query by minutes given
         this.router.get('/tiempoMn', this.consultaTiempoMn.bind(this));
        
-        //Consulta de espera por minutos
+        //Hold time query by minutes given
         this.router.get('/esperaMn', this.consultaEsperaMn.bind(this));
        
-        //Consulta de KPIs del dia anterior
+        //Consults the KPIs historical data of the day before
         this.router.get('/consultaDia', this.consultaDia.bind(this));
 
 
     }
 
-      
+    //The route /testagent is used to test the connection with the server.  
     private getTestAgent(req: Request, res: Response){
         try{
             console.log("Prueba exitosa")
@@ -67,10 +70,11 @@ class HistoricoController extends AbstractController{
         }
     }
 
+    //Consults the KPIs historical data of the day before
     private async consultaDia(req: Request,res: Response){
         try{
             
-            const hoy =  new Date(new Date().getTime() - 6 * 60 * 60 * 1000).toISOString();
+            const hoy =  new Date(new Date().getTime() - 6 * 60 * 60 * 1000).toISOString(); //Adjust the time to Mexico City
             const dia = new Date (hoy).getDate() -1;
             const mes = new Date (hoy).getMonth();
             const año = new Date (hoy).getFullYear();
@@ -78,21 +82,21 @@ class HistoricoController extends AbstractController{
 
             const docClient = new DocumentClient();
             const query = {
-                TableName: 'KPIPrueba-DEV',
-                FilterExpression: 'Fecha >= :start AND Fecha <= :end',
+                TableName: 'KPIPrueba-DEV', //Table name in DynamoDB
+                FilterExpression: 'Fecha >= :start AND Fecha <= :end', //Filter expression
                 ExpressionAttributeValues: {
-                ':start': new Date(fecha).toISOString().split('T')[0]+'T00:00:00.000Z',//Hora ajustada   
+                ':start': new Date(fecha).toISOString().split('T')[0]+'T00:00:00.000Z',//Gets the start of the day
               
-                ':end': new Date(fecha).toISOString().split('T')[0]+'T23:59:59.999Z',//Hora ajustada   
+                ':end': new Date(fecha).toISOString().split('T')[0]+'T23:59:59.999Z',//Gets the end of the day 
                 },
                 ScanIndexForward: true, 
               };
           
-            const metricas = await docClient.scan(query).promise();
-            const metricaLst: any = [];
+            const metricas = await docClient.scan(query).promise(); //Response of the query to the database
+            const metricaLst: any = []; //Where the data will be stored
     
             if (metricas.Items) {
-                for (const kpi of metricas.Items) {
+                for (const kpi of metricas.Items) { //Goes through the data and stores it in the metricaLst array, adding the metric, type and date 
                     if (kpi) {
                         const metric = (kpi as any).Metrica;
                         const tipo = (kpi as any).Tipo; 
@@ -102,42 +106,41 @@ class HistoricoController extends AbstractController{
                 }
             }
 
-            const enOrden = metricaLst.sort((a: any, b:any) => {
+            const enOrden = metricaLst.sort((a: any, b:any) => { //Sorts the data by date
                 const dateA = new Date(a[2]); 
                 const dateB = new Date(b[2]);
             
                 return dateA.getTime() - dateB.getTime();
             });
 
-            res.status(200).send(metricaLst);
-            console.log('Metrica abandono enviada');
-
+            res.status(200).send(metricaLst); //Sends the data to the client
         }catch(err){
             console.log(err)
             res.status(500).send('Internal server error'+err);
         }
     }
 
+    //Abandonment query by date range given in the front end
     private async consultaAbandono(req: Request,res: Response){
         try{
     
-            const docClient = new DocumentClient();
+            const docClient = new DocumentClient(); //Creates a new instance of the DocumentClient to access the database
             const query = {
-                TableName: 'KPIPrueba-DEV',
-                FilterExpression: 'Tipo = :tipo AND Fecha >= :start AND Fecha <= :end',
+                TableName: 'KPIPrueba-DEV', //Table name in DynamoDB
+                FilterExpression: 'Tipo = :tipo AND Fecha >= :start AND Fecha <= :end', //Filter expression
                 ExpressionAttributeValues: {
-                  ':tipo': 'Abandono',
-                  ':start': req.query.start, //Tiene que ser antes de del :end
-                  ':end': new Date(new Date().getTime() - 6 * 60 * 60 * 1000).toISOString().split('T')[0]+'T23:59:59.999Z',//Hora ajustada   
+                  ':tipo': 'Abandono', //Type of KPI
+                  ':start': req.query.start, //It has to be before the :end and is specified in the front end
+                  ':end': new Date(new Date().getTime() - 6 * 60 * 60 * 1000).toISOString().split('T')[0]+'T23:59:59.999Z',//Adjust the time to Mexico City  
                 },
                 ScanIndexForward: true, 
               };
           
-            const metricas = await docClient.scan(query).promise();
-            const metricaLst: any = [];
+            const metricas = await docClient.scan(query).promise(); //Response of the query to the database
+            const metricaLst: any = []; //Where the data will be stored
     
             if (metricas.Items) {
-                for (const kpi of metricas.Items) {
+                for (const kpi of metricas.Items) { //Goes through the data and stores it in the metricaLst array, adding the metric, type and date
                     if (kpi) {
                         const metric = (kpi as any).Metrica;
                         const tipo = (kpi as any).Tipo; 
@@ -147,7 +150,7 @@ class HistoricoController extends AbstractController{
                 }
             }
 
-            const enOrden = metricaLst.sort((a: any, b:any) => {
+            const enOrden = metricaLst.sort((a: any, b:any) => { //Sorts the data by date and time
                 const dateA = new Date(a[2]); 
                 const dateB = new Date(b[2]);
             
@@ -155,7 +158,6 @@ class HistoricoController extends AbstractController{
             });
 
             res.status(200).send(metricaLst);
-            console.log('Metrica abandono enviada');
 
         }catch(err){
             console.log(err)
@@ -163,26 +165,27 @@ class HistoricoController extends AbstractController{
         }
     }
 
+    //Service level query by date range given in the front end
     private async consultaServicio(req: Request,res: Response){
         try{
     
-            const docClient = new DocumentClient();
+            const docClient = new DocumentClient(); //Creates a new instance of the DocumentClient to access the database
             const query = {
-                TableName: 'KPIPrueba-DEV',
-                FilterExpression: 'Tipo = :tipo AND Fecha >= :start AND Fecha <= :end',
+                TableName: 'KPIPrueba-DEV', //Table name in DynamoDB
+                FilterExpression: 'Tipo = :tipo AND Fecha >= :start AND Fecha <= :end', //Filter expression to get the data specified in the front end
                 ExpressionAttributeValues: {
-                  ':tipo': 'Servicio',
-                  ':start': req.query.start, //Tiene que ser antes de del :end
-                  ':end': new Date(new Date().getTime() - 6 * 60 * 60 * 1000).toISOString().split('T')[0]+'T23:59:59.999Z',   
+                  ':tipo': 'Servicio', //Type of KPI
+                  ':start': req.query.start, //Date specified in the front end
+                  ':end': new Date(new Date().getTime() - 6 * 60 * 60 * 1000).toISOString().split('T')[0]+'T23:59:59.999Z', //Adjust the time to Mexico City  
                 },
                 ScanIndexForward: true, 
               };
           
-            const metricas = await docClient.scan(query).promise();
-            const metricaLst: any = [];
+            const metricas = await docClient.scan(query).promise(); //Response of the query to the database
+            const metricaLst: any = []; //Where the data will be stored
     
             if (metricas.Items) {
-                for (const kpi of metricas.Items) {
+                for (const kpi of metricas.Items) { //Goes through the data and stores it in the metricaLst array, adding the metric, type and date
                     if (kpi) {
                         const metric = (kpi as any).Metrica;
                         const tipo = (kpi as any).Tipo; 
@@ -192,7 +195,7 @@ class HistoricoController extends AbstractController{
                 }
             }
 
-            const enOrden = metricaLst.sort((a: any, b:any) => {
+            const enOrden = metricaLst.sort((a: any, b:any) => { //Sorts the data by date and time
                 const dateA = new Date(a[2]); 
                 const dateB = new Date(b[2]);
             
@@ -200,34 +203,33 @@ class HistoricoController extends AbstractController{
             });
 
             res.status(200).send(metricaLst);
-            console.log('Metrica servicio enviada');
-
         }catch(err){
             console.log(err)
             res.status(500).send('Internal server error'+err);
         }
     }
 
+    //Occupancy query by date range given in the front end
     private async consultaOcupacion(req: Request,res: Response){
         try{
     
             const docClient = new DocumentClient();
             const query = {
-                TableName: 'KPIPrueba-DEV',
+                TableName: 'KPIPrueba-DEV', //Table name in DynamoDB
                 FilterExpression: 'Tipo = :tipo AND Fecha >= :start AND Fecha <= :end',
                 ExpressionAttributeValues: {
-                  ':tipo': 'Ocupacion',
-                  ':start': req.query.start, //Tiene que ser antes de del :end
-                  ':end': new Date(new Date().getTime() - 6 * 60 * 60 * 1000).toISOString().split('T')[0]+'T23:59:59.999Z',   
+                  ':tipo': 'Ocupacion', //Type of KPI
+                  ':start': req.query.start, //Date specified in the front end
+                  ':end': new Date(new Date().getTime() - 6 * 60 * 60 * 1000).toISOString().split('T')[0]+'T23:59:59.999Z', //Adjust the time to Mexico City  
                 },
                 ScanIndexForward: true, 
               };
           
-            const metricas = await docClient.scan(query).promise();
-            const metricaLst: any = [];
+            const metricas = await docClient.scan(query).promise(); //Response of the query to the database
+            const metricaLst: any = []; //Where the data will be stored
     
             if (metricas.Items) {
-                for (const kpi of metricas.Items) {
+                for (const kpi of metricas.Items) { //Goes through the data and stores it in the metricaLst array, adding the metric, type and date
                     if (kpi) {
                         const metric = (kpi as any).Metrica;
                         const tipo = (kpi as any).Tipo; 
@@ -237,15 +239,13 @@ class HistoricoController extends AbstractController{
                 }
             }
 
-            const enOrden = metricaLst.sort((a: any, b:any) => {
+            const enOrden = metricaLst.sort((a: any, b:any) => { //Sorts the data by date
                 const dateA = new Date(a[2]); 
                 const dateB = new Date(b[2]);
             
                 return dateA.getTime() - dateB.getTime();
             });
-
             res.status(200).send(metricaLst);
-            console.log('Metrica ocupacion enviada');
 
         }catch(err){
             console.log(err)
@@ -253,26 +253,27 @@ class HistoricoController extends AbstractController{
         }
     }
 
+    //Total time of call query by date range given in the front end
     private async consultaTiempo(req: Request,res: Response){
         try{
     
-            const docClient = new DocumentClient();
+            const docClient = new DocumentClient(); //Creates a new instance of the DocumentClient to access the database
             const query = {
                 TableName: 'KPIPrueba-DEV',
-                FilterExpression: 'Tipo = :tipo AND Fecha >= :start AND Fecha <= :end',
+                FilterExpression: 'Tipo = :tipo AND Fecha >= :start AND Fecha <= :end', //Filter expression to get the data specified in the front end
                 ExpressionAttributeValues: {
-                  ':tipo': 'Tiempo',
-                  ':start': req.query.start, //Tiene que ser antes de del :end
+                  ':tipo': 'Tiempo', //Type of KPI   
+                  ':start': req.query.start, //Date specified in the front end
                   ':end': new Date(new Date().getTime() - 6 * 60 * 60 * 1000).toISOString().split('T')[0]+'T23:59:59.999Z',   
                 },
                 ScanIndexForward: true, 
               };
           
-            const metricas = await docClient.scan(query).promise();
-            const metricaLst: any = [];
+            const metricas = await docClient.scan(query).promise(); //Response of the query to the database
+            const metricaLst: any = []; //Where the data will be stored
     
             if (metricas.Items) {
-                for (const kpi of metricas.Items) {
+                for (const kpi of metricas.Items) { //Goes through the data and stores it in the metricaLst array, adding the metric, type and date
                     if (kpi) {
                         const metric = (kpi as any).Metrica;
                         const tipo = (kpi as any).Tipo; 
@@ -282,7 +283,7 @@ class HistoricoController extends AbstractController{
                 }
             }
 
-            const enOrden = metricaLst.sort((a: any, b:any) => {
+            const enOrden = metricaLst.sort((a: any, b:any) => { //Sorts the data by date
                 const dateA = new Date(a[2]); 
                 const dateB = new Date(b[2]);
             
@@ -290,34 +291,33 @@ class HistoricoController extends AbstractController{
             });
 
             res.status(200).send(metricaLst);
-            console.log('Metrica tiempo enviada');
-
         }catch(err){
             console.log(err)
             res.status(500).send('Internal server error'+err);
         }
     }
 
+    //Hold time query by date range given in the front end
     private async consultaEspera(req: Request,res: Response){
         try{
     
             const docClient = new DocumentClient();
             const query = {
-                TableName: 'KPIPrueba-DEV',
+                TableName: 'KPIPrueba-DEV', //Table name in DynamoDB
                 FilterExpression: 'Tipo = :tipo AND Fecha >= :start AND Fecha <= :end',
                 ExpressionAttributeValues: {
-                  ':tipo': 'Espera',
-                  ':start': req.query.start, //Tiene que ser antes de del :end
+                  ':tipo': 'Espera', //Type of KPI
+                  ':start': req.query.start, //Date specified in the front end
                   ':end': new Date(new Date().getTime() - 6 * 60 * 60 * 1000).toISOString().split('T')[0]+'T23:59:59.999Z',   
                 },
                 ScanIndexForward: true, 
               };
           
-            const metricas = await docClient.scan(query).promise();
+            const metricas = await docClient.scan(query).promise(); //Response of the query to the database
             const metricaLst: any = [];
     
             if (metricas.Items) {
-                for (const kpi of metricas.Items) {
+                for (const kpi of metricas.Items) { //Goes through the data and stores it in the metricaLst array, adding the metric, type and date
                     if (kpi) {
                         const metric = (kpi as any).Metrica;
                         const tipo = (kpi as any).Tipo; 
@@ -327,7 +327,7 @@ class HistoricoController extends AbstractController{
                 }
             }
 
-            const enOrden = metricaLst.sort((a: any, b:any) => {
+            const enOrden = metricaLst.sort((a: any, b:any) => { //Sorts the data by date
                 const dateA = new Date(a[2]); 
                 const dateB = new Date(b[2]);
             
@@ -335,7 +335,6 @@ class HistoricoController extends AbstractController{
             });
 
             res.status(200).send(metricaLst);
-            console.log('Metrica espera enviada');
 
         }catch(err){
             console.log(err)
@@ -343,58 +342,58 @@ class HistoricoController extends AbstractController{
         }
     }
 
+    //Abandonmente rate query by minutes specified in the front end
     private async consultaAbandonoMn(req: Request,res: Response){
         try{
 
-            const min:any = req.query.cantidad;
+            const min:any = req.query.cantidad; //Gets the minutes specified in the front end
 
-            const minC = parseInt(min) + 4;
+            const minC = parseInt(min) + 4; //Adds 4 minutes to the specified minutes to adjust the time
 
             const hora = new Date().getHours();
             const minuto = new Date().getMinutes();
 
+            //Gives the appropriate date and time to the specificDate variable
             const specificDate = new Date('2024-06-18T' + hora.toString().padStart(2, '0') + ':' + minuto.toString().padStart(2, '0') +':00.000Z');
 
 
             const docClient = new DocumentClient();
             const query = {
-                TableName: 'KPIMinPrueba-DEV',
+                TableName: 'KPIMinPrueba-DEV', //Table name in DynamoDB
                 FilterExpression: 'Tipo = :tipo AND Fecha >= :start AND Fecha <= :end',
                 ExpressionAttributeValues: {
-                  ':tipo': 'Abandono',
-                  ':start': new Date(specificDate.getTime() - minC * 60 * 1000).toISOString(), //Tiene que ser antes de del :end
+                  ':tipo': 'Abandono', //Type of KPI
+                  ':start': new Date(specificDate.getTime() - minC * 60 * 1000).toISOString(), //Specifies how many minutes before the specificDate
                 //   ':start': new Date(inicio.getTime() - minC * 60 * 1000).toISOString(), //Tiene que ser antes de del :end
-                  ':end': specificDate.toISOString(),//Hora ajustada
+                  ':end': specificDate.toISOString(),//Specific date
                 //   ':end': new Date(new Date().getTime() - 6 * 60 * 60 * 1000).toISOString(),//Hora ajustada   
                 },
                 ScanIndexForward: true, 
               };
           
-            const metricas = await docClient.scan(query).promise();
+            const metricas = await docClient.scan(query).promise(); //Response of the query to the database
 
             const metricaLst: any = [];
     
             if (metricas.Items) {
-                for (const kpi of metricas.Items) {
+                for (const kpi of metricas.Items) { //Goes through the data and stores it in the metricaLst array, adding the metric, type and date
                     if (kpi) {
                         const metric = (kpi as any).Metrica;
                         const tipo = (kpi as any).Tipo; 
                         const fecha = (kpi as any).Fecha;
-                        // const fecha = (kpi as any).Fecha.split('T')[0];
                         metricaLst.push([metric, tipo, fecha]);
                     }
                 }
             }
 
-            const enOrden = metricaLst.sort((a: any, b:any) => {
+            const enOrden = metricaLst.sort((a: any, b:any) => { //Sorts the data by date and time
                 const dateA = new Date(a[2]); 
                 const dateB = new Date(b[2]);
             
                 return dateA.getTime() - dateB.getTime();
             });
 
-            res.status(200).send(metricaLst);
-            console.log('Metrica abandono enviada');
+            res.status(200).send(metricaLst); //Sends the data to the client
 
         }catch(err){
             console.log(err)
@@ -402,51 +401,51 @@ class HistoricoController extends AbstractController{
         }
     }
 
+    //Service level query by minutes specified in the front end
     private async consultaServicoMn(req: Request,res: Response){
         try{
 
-            const min:any = req.query.cantidad;
-
-            const minC = parseInt(min) + 4;
+            const min:any = req.query.cantidad; //Gets the minutes specified in the front end
+ 
+            const minC = parseInt(min) + 4; //Adds 4 minutes to the specified minutes to adjust the time
 
             const hora = new Date().getHours();
             const minuto = new Date().getMinutes();
 
+            //Gives the appropriate date and time to the specificDate variable
             const specificDate = new Date('2024-06-18T' + hora.toString().padStart(2, '0') + ':' + minuto.toString().padStart(2, '0') +':00.000Z');
-
             // const inicio =  new Date(new Date().getTime() - 6 * 60 * 60 * 1000);
 
     
             const docClient = new DocumentClient();
             const query = {
-                TableName: 'KPIMinPrueba-DEV',
+                TableName: 'KPIMinPrueba-DEV', //Table name in DynamoDB
                 FilterExpression: 'Tipo = :tipo AND Fecha >= :start AND Fecha <= :end',
                 ExpressionAttributeValues: {
-                  ':tipo': 'Servicio',
-                  ':start': new Date(specificDate.getTime() - minC * 60 * 1000).toISOString(), //Tiene que ser antes de del :end
+                  ':tipo': 'Servicio', //Type of KPI
+                  ':start': new Date(specificDate.getTime() - minC * 60 * 1000).toISOString(), //Specifies how many minutes before the specificDate
                 //   ':start': new Date(inicio.getTime() - minC * 60 * 1000).toISOString(), //Tiene que ser antes de del :end
-                  ':end': specificDate.toISOString(),//Hora ajustada
+                  ':end': specificDate.toISOString(),
                 //   ':end': new Date(new Date().getTime() - 6 * 60 * 60 * 1000).toISOString(),//Hora ajustada   
                 },
                 ScanIndexForward: true, 
               };
           
-            const metricas = await docClient.scan(query).promise();
+            const metricas = await docClient.scan(query).promise(); //Response of the query to the database
             const metricaLst: any = [];
     
             if (metricas.Items) {
-                for (const kpi of metricas.Items) {
+                for (const kpi of metricas.Items) { //Goes through the data and stores it in the metricaLst array, adding the metric, type and date
                     if (kpi) {
                         const metric = (kpi as any).Metrica;
                         const tipo = (kpi as any).Tipo; 
                         const fecha = (kpi as any).Fecha;
-                        // const fecha = (kpi as any).Fecha.split('T')[0];
                         metricaLst.push([metric, tipo, fecha]);
                     }
                 }
             }
 
-            const enOrden = metricaLst.sort((a: any, b:any) => {
+            const enOrden = metricaLst.sort((a: any, b:any) => { //Sorts the data by date and time
                 const dateA = new Date(a[2]); 
                 const dateB = new Date(b[2]);
             
@@ -462,39 +461,40 @@ class HistoricoController extends AbstractController{
         }
     }
 
+    //Occupancy query by minutes specified in the front end
     private async consultaOcupMn(req: Request,res: Response){
         try{
 
-            const min:any = req.query.cantidad;
+            const min:any = req.query.cantidad; //Gets the minutes specified in the front end
 
-            const minC = parseInt(min) + 4;
+            const minC = parseInt(min) + 4; //Adds 4 minutes to the specified minutes to adjust the time
 
             const hora = new Date().getHours();
             const minuto = new Date().getMinutes();
 
+            //Give the correct format to the date and time to the specificDate variable for it to be a valid date
             const specificDate = new Date('2024-06-18T' + hora.toString().padStart(2, '0') + ':' + minuto.toString().padStart(2, '0') +':00.000Z');
-
             // const inicio =  new Date(new Date().getTime() - 6 * 60 * 60 * 1000);
 
             const docClient = new DocumentClient();
             const query = {
-                TableName: 'KPIMinPrueba-DEV',
+                TableName: 'KPIMinPrueba-DEV', //Table name in DynamoDB
                 FilterExpression: 'Tipo = :tipo AND Fecha >= :start AND Fecha <= :end',
                 ExpressionAttributeValues: {
-                  ':tipo': 'Ocupacion',
-                  ':start': new Date(specificDate.getTime() - minC * 60 * 1000).toISOString(), //Tiene que ser antes de del :end
+                  ':tipo': 'Ocupacion', //Type of KPI
+                  ':start': new Date(specificDate.getTime() - minC * 60 * 1000).toISOString(), //Specifies how many minutes before the specificDate
                 //   ':start': new Date(inicio.getTime() - minC * 60 * 1000).toISOString(), //Tiene que ser antes de del :end
-                  ':end': specificDate.toISOString(),//Hora ajustada
+                  ':end': specificDate.toISOString(),
                 //   ':end': new Date(new Date().getTime() - 6 * 60 * 60 * 1000).toISOString(),//Hora ajustada   
                 },
                 ScanIndexForward: true, 
               };
           
-            const metricas = await docClient.scan(query).promise();
-            const metricaLst: any = [];
+            const metricas = await docClient.scan(query).promise(); //Response of the query to the database
+            const metricaLst: any = []; //Where the data will be stored
     
             if (metricas.Items) {
-                for (const kpi of metricas.Items) {
+                for (const kpi of metricas.Items) { //Goes through the data and stores it in the metricaLst array, adding the metric, type and date
                     if (kpi) {
                         const metric = (kpi as any).Metrica;
                         const tipo = (kpi as any).Tipo; 
@@ -505,15 +505,13 @@ class HistoricoController extends AbstractController{
                 }
             }
 
-            const enOrden = metricaLst.sort((a: any, b:any) => {
+            const enOrden = metricaLst.sort((a: any, b:any) => { //Sorts the data by date and time
                 const dateA = new Date(a[2]); 
                 const dateB = new Date(b[2]);
             
                 return dateA.getTime() - dateB.getTime();
             });
-
             res.status(200).send(metricaLst);
-            console.log('Metrica ocupacion por minutos enviada');
 
         }catch(err){
             console.log(err)
@@ -521,58 +519,56 @@ class HistoricoController extends AbstractController{
         }
     }
 
+    //Total time of call query by minutes specified in the front end
     private async consultaTiempoMn(req: Request,res: Response){
         try{
 
-            const min:any = req.query.cantidad;
+            const min:any = req.query.cantidad; //Gets the minutes specified in the front end
 
-            const minC = parseInt(min) + 4;
+            const minC = parseInt(min) + 4; //Adds 4 minutes to the specified minutes to adjust the time
 
             const hora = new Date().getHours();
             const minuto = new Date().getMinutes();
 
+            //Give the correct format to the date and time to the specificDate variable for it to be a valid date
             const specificDate = new Date('2024-06-18T' + hora.toString().padStart(2, '0') + ':' + minuto.toString().padStart(2, '0') +':00.000Z');
-
             // const inicio =  new Date(new Date().getTime() - 6 * 60 * 60 * 1000);
 
             const docClient = new DocumentClient();
             const query = {
-                TableName: 'KPIMinPrueba-DEV',
+                TableName: 'KPIMinPrueba-DEV', //Table name in DynamoDB
                 FilterExpression: 'Tipo = :tipo AND Fecha >= :start AND Fecha <= :end',
                 ExpressionAttributeValues: {
-                  ':tipo': 'Tiempo',
-                  ':start': new Date(specificDate.getTime() - minC * 60 * 1000).toISOString(), //Tiene que ser antes de del :end
+                  ':tipo': 'Tiempo', //Type of KPI
+                  ':start': new Date(specificDate.getTime() - minC * 60 * 1000).toISOString(), //Specifies how many minutes before the specificDate
                 //   ':start': new Date(inicio.getTime() - minC * 60 * 1000).toISOString(), //Tiene que ser antes de del :end
-                  ':end': specificDate.toISOString(),//Hora ajustada
+                  ':end': specificDate.toISOString(),
                 //   ':end': new Date(new Date().getTime() - 6 * 60 * 60 * 1000).toISOString(),//Hora ajustada   
                 },
                 ScanIndexForward: true, 
               };
           
-            const metricas = await docClient.scan(query).promise();
-            const metricaLst: any = [];
+            const metricas = await docClient.scan(query).promise(); //Response of the query to the database
+            const metricaLst: any = []; //Where the data will be stored
     
             if (metricas.Items) {
-                for (const kpi of metricas.Items) {
+                for (const kpi of metricas.Items) { //Goes through the data and stores it in the metricaLst array, adding the metric, type and date
                     if (kpi) {
                         const metric = (kpi as any).Metrica;
                         const tipo = (kpi as any).Tipo; 
                         const fecha = (kpi as any).Fecha;
-                        // const fecha = (kpi as any).Fecha.split('T')[0];
                         metricaLst.push([metric, tipo, fecha]);
                     }
                 }
             }
 
-            const enOrden = metricaLst.sort((a: any, b:any) => {
+            const enOrden = metricaLst.sort((a: any, b:any) => { //Sorts the data by date and time
                 const dateA = new Date(a[2]); 
                 const dateB = new Date(b[2]);
             
                 return dateA.getTime() - dateB.getTime();
             });
-
             res.status(200).send(metricaLst);
-            console.log('Metrica tiempo por minutos enviada');
 
         }catch(err){
             console.log(err)
@@ -580,58 +576,56 @@ class HistoricoController extends AbstractController{
         }
     }
 
+    //Hold time query by minutes specified in the front end
     private async consultaEsperaMn(req: Request,res: Response){
         try{
 
-            const min:any = req.query.cantidad;
+            const min:any = req.query.cantidad; //Gets the minutes specified in the front end
 
-            const minC = parseInt(min) + 4;
+            const minC = parseInt(min) + 4; //Adds 4 minutes to the specified minutes to adjust the time
 
             const hora = new Date().getHours();
             const minuto = new Date().getMinutes();
 
+            //Give the correct format to the date and time to the specificDate variable for it to be a valid date
             const specificDate = new Date('2024-06-18T' + hora.toString().padStart(2, '0') + ':' + minuto.toString().padStart(2, '0') +':00.000Z');
-
             // const inicio =  new Date(new Date().getTime() - 6 * 60 * 60 * 1000);
 
             const docClient = new DocumentClient();
             const query = {
-                TableName: 'KPIMinPrueba-DEV',
+                TableName: 'KPIMinPrueba-DEV', //Table name in DynamoDB
                 FilterExpression: 'Tipo = :tipo AND Fecha >= :start AND Fecha <= :end',
                 ExpressionAttributeValues: {
-                  ':tipo': 'Espera',
-                  ':start': new Date(specificDate.getTime() - minC * 60 * 1000).toISOString(), //Tiene que ser antes de del :end
+                  ':tipo': 'Espera', //Type of KPI
+                  ':start': new Date(specificDate.getTime() - minC * 60 * 1000).toISOString(), //Specifies how many minutes before the specificDate
                 //   ':start': new Date(inicio.getTime() - minC * 60 * 1000).toISOString(), //Tiene que ser antes de del :end
-                  ':end': specificDate.toISOString(),//Hora ajustada
+                  ':end': specificDate.toISOString(),
                 //   ':end': new Date(new Date().getTime() - 6 * 60 * 60 * 1000).toISOString(),//Hora ajustada   
                 },
                 ScanIndexForward: true, 
               };
           
-            const metricas = await docClient.scan(query).promise();
-            const metricaLst: any = [];
+            const metricas = await docClient.scan(query).promise(); //Response of the query to the database
+            const metricaLst: any = []; //Where the data will be stored
     
             if (metricas.Items) {
-                for (const kpi of metricas.Items) {
+                for (const kpi of metricas.Items) { //Goes through the data and stores it in the metricaLst array, adding the metric, type and date
                     if (kpi) {
                         const metric = (kpi as any).Metrica;
                         const tipo = (kpi as any).Tipo; 
                         const fecha = (kpi as any).Fecha;
-                        // const fecha = (kpi as any).Fecha.split('T')[0];
                         metricaLst.push([metric, tipo, fecha]);
                     }
                 }
             }
 
-            const enOrden = metricaLst.sort((a: any, b:any) => {
+            const enOrden = metricaLst.sort((a: any, b:any) => { //Sorts the data by date and time
                 const dateA = new Date(a[2]); 
                 const dateB = new Date(b[2]);
             
                 return dateA.getTime() - dateB.getTime();
             });
-
             res.status(200).send(metricaLst);
-            console.log('Metrica espera por minutos enviada');
 
         }catch(err){
             console.log(err)
