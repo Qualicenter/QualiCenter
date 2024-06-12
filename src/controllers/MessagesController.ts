@@ -1,3 +1,9 @@
+/**
+ * @author Aldehil Sánchez
+ * This file contains the controller for the messages system between the agents and the supervisor
+ * It contains the API routes for the messages system.
+ */
+
 import { Request,Response } from "express";
 import AbstractController from "./AbstractController";
 import AgentHelpMessages from "../modelsNoSQL/AgentHelpMessages";
@@ -7,11 +13,12 @@ class MessageController extends AbstractController{
     
     public static get instance(){
         if(!this._instance){
-            this._instance = new MessageController("messages");
+            this._instance = new MessageController("messages"); // Prefix for the routes
         }
         return this._instance;
     }
 
+    // Contructor with the API routes for the messages system
     protected initRoutes(): void {
         this.router.get("/getMessages",this.getMessages.bind(this));
         this.router.post("/createMessage",this.createMessage.bind(this));
@@ -19,6 +26,7 @@ class MessageController extends AbstractController{
         this.router.get('/prueba',this.getPrueba.bind(this));
     }
 
+    // Route for testing purposes
     private getPrueba(req: Request,res: Response){
         const respuesta = {
             "mensaje": "Prueba exitosa"
@@ -26,18 +34,27 @@ class MessageController extends AbstractController{
         res.status(200).json(respuesta);
     }
 
+    /** Function to get messages from the database,
+     * the request can have filters for the sender, receiver and date 
+     */
     private async getMessages(req:Request,res:Response){
         try{
             let query = AgentHelpMessages.scan();
 
+            // Filter by sender
             if (req.query.Sender) {
                 query = query.where('Sender').equals(req.query.Sender);
             }
 
+            // Filter by receiver
             if (req.query.Receiver) {
                 query = query.where('Receiver').equals(req.query.Receiver);
             }
 
+            /** Filter by date
+             * The date must be received in the format "YYYY-MM-DDTHH:MM:ss" in the user local time,
+             * and the dynamodb library will transform it to UTC time to make the query
+             */
             if (req.query.Date) {
                 try {
                     const filterDate = new Date(req.query.Date.toString());
@@ -63,9 +80,12 @@ class MessageController extends AbstractController{
         }
     }
 
+    /** Function to get the last messages from the database,
+     * the request can have a filter for the minutes ago to search
+     */
     private async getLastMessages(req: Request, res: Response) {
         try {
-            const minutesAgo = 10; // Define cuántos minutos atrás quieres buscar
+            const minutesAgo = 10; // Defining the minutes to search
             const currentTime = new Date();
             const startTime = new Date(currentTime.getTime() - minutesAgo * 60000);
 
@@ -77,6 +97,13 @@ class MessageController extends AbstractController{
         }
     }
 
+    /**
+     * Function to create a message in the database
+     * The request must have the following fields:
+     * Sender, Receiver, Message, Date, nombreCliente (name of the client),
+     * generoCliente (gender of the client), fechaNacimientoCliente (birthdate of the client),
+     * polizaCliente (number of policy), tipoCliente (type of client: standard, premium, etc.)
+     */
     private async createMessage(req:Request,res:Response){
         console.log(req.body);
         const {Sender,Receiver,Message, nombreCliente, generoCliente, fechaNacimientoCliente, polizaCliente, tipoCliente} = req.body;
