@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import AbstractController from "./AbstractController";
 import QueueData from "../modelsNoSQL/QueueData"; // Import your QueueData model
 import connect from "../services/connectService"; // Import Amazon Connect SDK
+import { AWS_INSTANCE_ID } from "../config";
 
 // Controller for the QueueData model, which represents the data of all calls in Queue
 class QueueDataController extends AbstractController {
@@ -16,8 +17,8 @@ class QueueDataController extends AbstractController {
 
     protected initRoutes(): void {
         this.router.put("/updateQueueData", this.updateQueueData.bind(this));
-        this.router.get("/getActiveCallsInQueue", this.getActiveCallsInQueue.bind(this));
-        this.router.put("/updateDisconnectedCalls", this.updateDisconnectedCalls.bind(this));
+        this.router.get("/getActiveCallsInQueue", this.getActiveCallsInQueue.bind(this)); // Get all active calls in the queue
+        this.router.put("/updateDisconnectedCalls", this.updateDisconnectedCalls.bind(this)); //
     }
 
     // Update the inQueue field of a call in the QueueData table (Used when a call is answered by an agent)
@@ -65,7 +66,7 @@ class QueueDataController extends AbstractController {
             // Iterate over each ContactID to check if it has been disconnected
             for (const contactID of contactIDs) {
                 const params = {
-                    InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2', // Replace with your Amazon Connect instance ID
+                    InstanceId: AWS_INSTANCE_ID, // Replace with your Amazon Connect instance ID
                     ContactId: contactID
                 };
                 
