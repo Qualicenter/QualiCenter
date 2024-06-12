@@ -1,3 +1,8 @@
+/**
+ * @author Eduardo Francisco Lugo Quintana
+ * This file contains the model for the clients table
+ */
+
 import { Model, Sequelize } from 'sequelize';
 
 interface ClientsAttributes {
@@ -14,6 +19,7 @@ module.exports = (sequelize: Sequelize, DataTypes: any) => {
         public Telefono!: string;
         public email!: string;
     
+        // The clients table has a one to many relationship with the poliza table
         static associate(models: any) {
             this.hasMany(models.Poliza, { foreignKey: 'Telefono', as: 'poliza' });
         }
@@ -31,7 +37,7 @@ module.exports = (sequelize: Sequelize, DataTypes: any) => {
         Telefono: {
             type: DataTypes.STRING,
             allowNull: false,
-            primaryKey: true
+            primaryKey: true // The telephone number is the primary key
         },
         email: {
             type: DataTypes.STRING,

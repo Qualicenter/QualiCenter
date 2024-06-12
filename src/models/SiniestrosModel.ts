@@ -1,3 +1,8 @@
+/**
+ * @author Eduardo Francisco Lugo Quintana
+ * This file contains the model for the Sinester table
+ */
+
 import { Model, Sequelize } from 'sequelize';
 
 interface SiniestrosAttributes {
@@ -16,6 +21,7 @@ module.exports = (sequelize: Sequelize, DataTypes: any) => {
         public grua!: boolean;
         public numPoliza!: string;
 
+        // The sinester table has a one to one relationship with the poliza table
         static associate(models: any) {
             this.belongsTo(models.Poliza, { foreignKey: 'numPoliza', as: 'poliza' });
         }
@@ -25,7 +31,7 @@ module.exports = (sequelize: Sequelize, DataTypes: any) => {
         numSiniestro: {
             type: DataTypes.INTEGER,
             allowNull: false,
-            primaryKey: true,
+            primaryKey: true, // The sinester number is the primary key
             autoIncrement: true
         },
         numPoliza: {
