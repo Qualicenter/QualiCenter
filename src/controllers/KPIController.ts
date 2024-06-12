@@ -120,7 +120,6 @@ class KPIsController extends AbstractController{
 
     if (data.MetricResults && data.MetricResults.length > 0) { //Checks if there is data
         for (const metricResult of data.MetricResults) {
-            console.log("si hay datos");
                 inicio = new Date(inicio.getTime() - 6 * 60 * 60 * 1000); //Adjust the time to the local time, Mexico City
                 fin = new Date(fin.getTime() - 6 * 60 * 60 * 1000); //Adjust the time to the local time, Mexico City
                 metricLst.push([inicio, fin]); //Stores the time stamps of the metrics
