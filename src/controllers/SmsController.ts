@@ -1,3 +1,9 @@
+/*
+Autor: Abigail Donají Chávez Rubio
+Autor: Pablo Spínola López
+SMS controller that publishes the messasges from the agent aplication to the client
+*/
+
 import {Request, Response} from "express";
 import AbstractController from "./AbstractController";
 import AWS from "../services/amazonSNS";
