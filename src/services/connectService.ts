@@ -1,3 +1,11 @@
+/**
+ * @author Angel Armando Marquez Curiel
+ * @author 
+ * @author
+ * 
+ * Controller in charge of managing the requests related to the agent
+ */ 
+
 import * as AWS from 'aws-sdk';
 import { AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY } from '../config';
 
