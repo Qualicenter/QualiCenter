@@ -336,17 +336,6 @@ class AgenteController extends AbstractController{
             // Get the agent ID we are interested in
             const agenteId = infoAgente?.userId ?? '';
 
-            // Get all contacts (calls)
-            const input4 = {
-                InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2',
-                TimeRange: { // SearchContactsTimeRange
-                    Type: "INITIATION_TIMESTAMP",
-                    StartTime: st,
-                    EndTime: et,
-                },
-            };
-            const data4 = await connect.searchContacts(input4).promise();
-
             // Filter contacts by AgentInfo Id
             const filteredContacts = data4.Contacts.filter(contact => contact.AgentInfo?.Id === agenteId);
 
