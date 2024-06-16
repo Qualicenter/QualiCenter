@@ -1,4 +1,12 @@
-import * as AWS from 'aws-sdk'
+/**
+ * @author Angel Armando Marquez Curiel
+ * @author 
+ * @author
+ * 
+ * Controller in charge of managing the requests related to the agent
+ */ 
+
+import AWS from 'aws-sdk'
 import { AWS_REGION, AWS_ACCESS_KEY_ID_LENS, AWS_SECRET_ACCESS_KEY_LENS  } from '../config';
 
 AWS.config.update({
@@ -7,7 +15,7 @@ AWS.config.update({
   region: AWS_REGION
 });
 
-// Instanciar Amazon Connect
+// Instantiate Contact Lens
 const connectLens = new AWS.ConnectContactLens();
 
 export default connectLens;

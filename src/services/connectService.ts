@@ -1,12 +1,10 @@
 /**
- * @author Angel Armando Marquez Curiel
- * @author 
- * @author
+ * @author Noh Ah Kim Kwon
  * 
  * Controller in charge of managing the requests related to the agent
  */ 
 
-import * as AWS from 'aws-sdk';
+import AWS from 'aws-sdk';
 import { AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY } from '../config';
 
 AWS.config.update({
@@ -15,7 +13,7 @@ AWS.config.update({
   region: AWS_REGION
 });
 
-// Instanciar Amazon Connect
+// Instantiate Amazon Connect
 const connect = new AWS.Connect();
 
 export default connect;
