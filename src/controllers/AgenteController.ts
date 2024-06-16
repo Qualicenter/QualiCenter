@@ -1,6 +1,6 @@
 /**
  * @author Angel Armando Marquez Curiel
- * @author Noh Ah Kim Kwon
+ * @author 
  * @author
  * 
  * Controller in charge of managing the requests related to the agent
@@ -9,6 +9,7 @@
 import { Request,Response } from "express";
 import AbstractController from "./AbstractController";
 import connectLens from "../services/connectLensService";
+import AWS from "../services/amazonSNS";
 import { connectService, customerProfilesService } from "../services/clientsService";
 import connect from "../services/connectService";
 import customer from "../services/customerService";
@@ -283,6 +284,16 @@ class AgenteController extends AbstractController{
             const st = new Date(new Date().setHours(0, 0, 0, 0)); // Today 00:00:00
             const et = new Date(new Date().getTime() - (1000)); // One second ago
 
+            const input4 = {
+                InstanceId: AWS_INSTANCE_ID,
+                TimeRange: { // SearchContactsTimeRange
+                    Type: "INITIATION_TIMESTAMP", // required
+                    StartTime: st, // required
+                    EndTime: et, // required
+                },
+            };
+            const data4 = await connect.searchContacts(input4).promise();
+
             // Get all users 
             const input = {
                 InstanceId: AWS_INSTANCE_ID,
@@ -327,7 +338,7 @@ class AgenteController extends AbstractController{
 
             // Get all contacts (calls)
             const input4 = {
-                InstanceId: AWS_INSTANCE_ID,
+                InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2',
                 TimeRange: { // SearchContactsTimeRange
                     Type: "INITIATION_TIMESTAMP",
                     StartTime: st,
