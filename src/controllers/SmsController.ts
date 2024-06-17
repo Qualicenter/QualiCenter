@@ -1,5 +1,6 @@
 /*
 Author: Abigail Donají Chávez Rubio
+Author: Pablo Spínola López
 SMS controller that publishes the messasges from the agent aplication to the client
 */
 
