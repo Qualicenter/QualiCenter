@@ -6,40 +6,39 @@ import KPIMinPruebaModel from "../modelsNoSQL/KPIMin";
 
 
 class KPIsController extends AbstractController{
-    //Singleton 
-    //Atributo de clase
+    //Attributes of the class
     private static _instance: KPIsController;
-    //Metodo de la clase 
+    //Methods 
     public static get instance(): AbstractController{
         if(!this._instance){
             this._instance = new KPIsController("kpis");
         }
         return this._instance;
     }
-    //Declarar todas las rutas del controlador
+    //All the routes of the class
     protected initRoutes(): void {
 
-        //Información de KPIs por cada 5 minutos
+        //The route for the KPIs of the last five minutes
         this.router.get('/cincoMin', this.cincoMin.bind(this));
 
-        //Información de KPIs por cada día
+        //The route for the KPIs of the last 24 hours
         this.router.get('/dia', this.dia.bind(this));
 
 
-        //Guardar información de KPIs por dia, en KPIrueba
+        //Save KPIs information according to the front end in the KPIPrueba each day
         this.router.post('/multiplesKPIS', this.multiplesKPIS.bind(this));
 
-        //Guardar información de KPIs segun el front end, por cada minuto en la base de datos de KPIMin 
+        //Save KPIs information according to the front end in the KPIMinPrueba
         this.router.post('/crearMinKPI',this.postCrearMinKPI.bind(this));
 
     }
 
+    //The route for the KPIs of the last five minutes
     private async cincoMin(req: Request, res: Response) {
         try {
             const info = {
                 ResourceArn: 'arn:aws:connect:us-east-1:744102162455:instance/e730139b-8673-445e-8307-c3a9250199a2', 
-                //QUINCE MINUTOS
-                StartTime: new Date(new Date().getTime() - 5 * 60 * 1000), 
+                StartTime: new Date(new Date().getTime() - 5 * 60 * 1000), //5 minutes ago
                 EndTime: new Date() ,
                 Filters: [
                     {
@@ -54,16 +53,16 @@ class KPIsController extends AbstractController{
                 ],
                 Metrics: [
                     {
-                        'Name': 'ABANDONMENT_RATE',
+                        'Name': 'ABANDONMENT_RATE', //Metric name, returns the percentage of contacts that were abandoned by customers before being handled by an agent
                     },
                     {
-                        'Name': 'AVG_CONTACT_DURATION',
+                        'Name': 'AVG_CONTACT_DURATION',//Metric name, returns the average time that the contact was active
                     },
                     {
-                        'Name': 'AVG_HOLD_TIME'
+                        'Name': 'AVG_HOLD_TIME' //Metric name, returns the average time that the contact was on hold before being handled by an agent
                     },
                     {
-                        'Name': 'SERVICE_LEVEL',
+                        'Name': 'SERVICE_LEVEL',//Metric name, it has a threshold
                         'Threshold': [
                             {
                                 'Comparison': 'LT',
@@ -74,6 +73,7 @@ class KPIsController extends AbstractController{
                 ],
             };
 
+            //Gets the total number of agents available
             const disp = {
                 InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2',
                 Filters: {
@@ -88,6 +88,7 @@ class KPIsController extends AbstractController{
                 ],
             };
 
+            //Gets the total number of agents on call
             const oc = {
                 InstanceId: 'e730139b-8673-445e-8307-c3a9250199a2',
                 Filters: {
@@ -103,32 +104,29 @@ class KPIsController extends AbstractController{
                 ],
             };
 
+            //The variables store the data of the metrics from Amazon Connect
             const data = await connect.getMetricDataV2(info).promise();
             const disponible = await connect.getCurrentMetricData(disp).promise();
             const ocupacion = await connect.getCurrentMetricData(oc).promise();
-            // res.status(200).json(data);
+
+            //The variable stores the data of the metrics
             const metricLst: any = [];
 
+            //The times stamps of the metrics when returning the data
             let inicio:any = new Date(new Date().getTime() - 5 * 60 * 1000);
             let fin:any = new Date();
-            // let inicio:any = new Date();
-            // let fin:any = new Date();
+  
 
 
-    if (data.MetricResults && data.MetricResults.length > 0) {
+    if (data.MetricResults && data.MetricResults.length > 0) { //Checks if there is data
         for (const metricResult of data.MetricResults) {
-            console.log("si hay datos");
-            //   if (metricResult.MetricInterval) {
-                //   inicio = metricResult.MetricInterval.StartTime;
-                inicio = new Date(inicio.getTime() - 6 * 60 * 60 * 1000);
-                //   fin = metricResult.MetricInterval.EndTime;
-                fin = new Date(fin.getTime() - 6 * 60 * 60 * 1000);
-                metricLst.push([inicio, fin]);
-                // }
+                inicio = new Date(inicio.getTime() - 6 * 60 * 60 * 1000); //Adjust the time to the local time, Mexico City
+                fin = new Date(fin.getTime() - 6 * 60 * 60 * 1000); //Adjust the time to the local time, Mexico City
+                metricLst.push([inicio, fin]); //Stores the time stamps of the metrics
 
             if (metricResult.Collections && metricResult.Collections.length > 0) {
             for (const collection of metricResult.Collections) {
-                metricLst.push([collection.Metric?.Name,collection.Value]);
+                metricLst.push([collection.Metric?.Name,collection.Value]); //Stores the name and value of each of the metrics
             }
             }
 
@@ -137,35 +135,30 @@ class KPIsController extends AbstractController{
             console.log("No hay datos");
         }
         let dispValue:any;
-        if (disponible.MetricResults && disponible.MetricResults.length > 0) {
+        if (disponible.MetricResults && disponible.MetricResults.length > 0) { //Checks if there is data
             for (const metricResult of disponible.MetricResults) {
                 if (metricResult.Collections && metricResult.Collections.length > 0) {
-                    for (const collection of metricResult.Collections) {
-                        dispValue = collection.Value;
+                    for (const collection of metricResult.Collections) { //Accesses the data of the metric
+                        dispValue = collection.Value; //Stores the value of the metric
                     }
                 }
             }
         }
         let ocValue:any;
-        if (ocupacion.MetricResults && ocupacion.MetricResults.length > 0) {
+        if (ocupacion.MetricResults && ocupacion.MetricResults.length > 0) {//Checks if there is data
             for (const metricResult of ocupacion.MetricResults) {
                 if (metricResult.Collections && metricResult.Collections.length > 0) {
-                    for (const collection of metricResult.Collections) {
-                        ocValue = collection.Value;
+                    for (const collection of metricResult.Collections) {//Accesses the data of the metric
+                        ocValue = collection.Value;//Stores the value of the metric
                     }
                 }
             }
         }
-        console.log(dispValue);
-        console.log(ocValue);
+        //Calculates the percentage of occupation of the agents
         const ocupacionValue = ocValue * 100 / dispValue;
-        metricLst.push(["Ocupacion", ocupacionValue]);
+        metricLst.push(["Ocupacion", ocupacionValue]);//Stores the value of the occupation of the agents
 
-        // res.status(200).json(data);
-        res.status(200).json(metricLst);
-
-
-        console.log("Prueba exitosa cinco minutos")
+        res.status(200).json(metricLst); //Returns the data of the metrics
 
         } catch (err) {
         console.log(err);
@@ -173,12 +166,13 @@ class KPIsController extends AbstractController{
     }
     }
 
+    //The route for the KPIs of the last day
     private async dia(req: Request, res: Response) {
         try {
             const info = {
                 ResourceArn: 'arn:aws:connect:us-east-1:744102162455:instance/e730139b-8673-445e-8307-c3a9250199a2', 
                 //QUINCE MINUTOS
-                StartTime: new Date(new Date().getTime() - 24 * 60 * 60 * 1000), 
+                StartTime: new Date(new Date().getTime() - 24 * 60 * 60 * 1000),  //Gets the data of the last day
                 EndTime: new Date() ,
                 Filters: [
                     {
@@ -212,11 +206,8 @@ class KPIsController extends AbstractController{
                     },
                 ],
             };
-
-
-            const data = await connect.getMetricDataV2(info).promise();
-            // res.status(200).json(data);
-            const metricLst: any = [];
+            const data = await connect.getMetricDataV2(info).promise(); //Gets the data of the metrics
+            const metricLst: any = [];//Stores the data of the metrics
 
             let inicio:any = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
 
@@ -224,12 +215,12 @@ class KPIsController extends AbstractController{
     if (data.MetricResults && data.MetricResults.length > 0) {
         for (const metricResult of data.MetricResults) {
             console.log("si hay datos");
-                inicio = new Date(inicio.getTime() - 6 * 60 * 60 * 1000);
+                inicio = new Date(inicio.getTime() - 6 * 60 * 60 * 1000);//Adjust the time to the local time, Mexico City
                 metricLst.push([inicio]);
 
 
-            if (metricResult.Collections && metricResult.Collections.length > 0) {
-            for (const collection of metricResult.Collections) {
+            if (metricResult.Collections && metricResult.Collections.length > 0) { //Checks if there is data
+            for (const collection of metricResult.Collections) { //Accesses the data of the metric
                 metricLst.push([collection.Metric?.Name,collection.Value]);
             }
             }
@@ -239,11 +230,8 @@ class KPIsController extends AbstractController{
             console.log("No hay datos");
         }
 
-        // res.status(200).json(data);
         res.status(200).json(metricLst);
 
-
-        console.log("Prueba exitosa cinco minutos")
 
         } catch (err) {
         console.log(err);
@@ -251,15 +239,15 @@ class KPIsController extends AbstractController{
     }
     }
 
+    //Save KPIs information according to the front end in the KPIPrueba each day
     private async multiplesKPIS(req: Request, res: Response) {
         try {
-          const kpiList: any[] = await req.body; 
+          const kpiList: any[] = await req.body; //Considers the request body as an array of KPIs
 
           for (const kpi of kpiList) {
-            await KPIPruebaModel.create(kpi);
+            await KPIPruebaModel.create(kpi); //Accesses the model and creates the KPIs
         }
 
-          console.log("KPIs MIN creados");
           res.status(201).send("<h1>KPIs creados</h1>"); 
         } catch (err) {
           console.error(err);
@@ -267,15 +255,15 @@ class KPIsController extends AbstractController{
         }
     }
 
+    //Save KPIs information according to the front end in the KPIMinPrueba
     private async postCrearMinKPI(req: Request, res: Response) {
         try {
-          const kpiList: any[] = await req.body; 
+          const kpiList: any[] = await req.body; //Considers the request body as an array of KPIs
 
           for (const kpi of kpiList) {
-            await KPIMinPruebaModel.create(kpi);
+            await KPIMinPruebaModel.create(kpi); //Accesses the model and creates the KPIs
           }
 
-          console.log("KPIs creados minutos");
           res.status(201).send("<h1>KPIs creados</h1>"); 
         } catch (err) {
           console.error(err);
