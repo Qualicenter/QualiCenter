@@ -1,5 +1,5 @@
 /*
-Autor: Abigail Donají Chávez Rubio
+Author: Abigail Donají Chávez Rubio
 SMS controller that publishes the messasges from the agent aplication to the client
 */
 
