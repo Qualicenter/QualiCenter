@@ -1,6 +1,10 @@
+/**
+ * @author Eduardo Francisco Lugo Quintana
+ * This file contains the controller regarding all the info of the clients, the vehicles and the sinester
+ */
+
 import { Request, Response} from "express";
 import AbstractController from "./AbstractController";
-import { Sequelize } from 'sequelize';
 import db from '../models/Index';
 
 class ClientsController extends AbstractController{ 
@@ -14,12 +18,13 @@ class ClientsController extends AbstractController{
     }
 
     protected initRoutes(): void {
-        this.router.get('/vehicle/get-info/:telefono', this.getVehicleInfo.bind(this));
-        this.router.get('/getClients', this.getClients.bind(this));
-        this.router.post('/addSiniestro', this.addSiniestro.bind(this));
-        this.router.get('/getSiniestros', this.getSiniestros.bind(this));
+        this.router.get('/vehicle/get-info/:telefono', this.getVehicleInfo.bind(this));  // Get the vehicle info of a client
+        this.router.get('/getClients', this.getClients.bind(this)); // Health check to get the clients
+        this.router.post('/addSiniestro', this.addSiniestro.bind(this)); // Add a new sinester
+        this.router.get('/getSiniestros', this.getSiniestros.bind(this)); // Get all the sinesters
     }   
 
+    /* This route executes a query that returns the client information based on its telephone number */
     private async getVehicleInfo(req: Request, res: Response){
         const { telefono } = req.params;
         const { QueryTypes } = require('sequelize');
@@ -40,6 +45,7 @@ class ClientsController extends AbstractController{
         }
     }
 
+    /* Returns all the clients */
     private async getClients(req: Request, res: Response){
         try {
             const clients = await db.Cliente.findAll();
@@ -49,6 +55,7 @@ class ClientsController extends AbstractController{
         }
     }
 
+    /* Adds a new sinester to the database */
     private async addSiniestro(req: Request, res: Response){
         const { numPoliza, direccion, ambulancia, grua } = req.body;
         try {
@@ -64,6 +71,7 @@ class ClientsController extends AbstractController{
         }
     }
 
+    /* Returns all the sinesters  */
     private async getSiniestros(req: Request, res: Response){
         try {
             const siniestros = await db.Siniestro.findAll();

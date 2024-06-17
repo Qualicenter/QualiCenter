@@ -1,3 +1,8 @@
+/**
+ * @author Eduardo Francisco Lugo Quintana
+ * This file contains the model for the vehicle table
+ */
+
 import { Model, Sequelize } from 'sequelize';
 
 interface VehicleAttributes {
@@ -17,6 +22,7 @@ module.exports = (sequelize: Sequelize, DataTypes: any) => {
         public Color!: string;
         public numPoliza!: number;
 
+        // The vehicle table has a one to one relationship with the poliza table
         static associate(models: any) {
             this.belongsTo(models.Poliza, { foreignKey: 'numPoliza', as: 'poliza' });
         }
@@ -38,7 +44,7 @@ module.exports = (sequelize: Sequelize, DataTypes: any) => {
         Placa: {
             type: DataTypes.STRING,
             allowNull: false,
-            primaryKey: true
+            primaryKey: true // The license plate is the primary key
         },
         Color: {
             type: DataTypes.STRING,
